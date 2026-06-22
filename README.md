@@ -1,8 +1,9 @@
 # SOME/IP IDS Multiclasse — features `content_ext`
 
 Repositório **autossuficiente** para reproduzir o IDS multiclasse SOME/IP com as features
-**`content_ext`** (12 do Kim + 4 comportamentais, **sem cabeçalho**) — **macro-F1 ≈ 0,99** em
-5 classes (`normal, dos, fuzzy, mitm_single, mitm_multi`).
+**`content_ext`** (12 do Kim + 4 comportamentais, **sem cabeçalho**) em 5 classes
+(`normal, dos, fuzzy, mitm_single, mitm_multi`). Desempenho in-scope honesto (split temporal):
+**macro-F1 0,966** — ver a tabela de regimes em [Resultado](#resultado).
 
 Inclui os **extratores de features**, o **dataset de features já extraídas** e o **experimento**.
 Os PCAPs crus (~1,9 GB, dados públicos do Kim) **não** são versionados — um script os baixa da
@@ -19,10 +20,25 @@ fonte original (figshare), permitindo rodar tudo **desde o tráfego cru**.
 │   └── extract_ext.py         #   + 4 comportamentais (content_ext) -> 21 features
 ├── scripts/download_pcaps.py  # baixa os PCAPs do figshare -> data/pcap/
 ├── data/ours_ext/             # features JÁ extraídas (X.npz, y_multi.npz) via Git LFS
-├── notebooks/05-ids-multiclasse-content-ext.ipynb   # experimento (executado)
-├── multiclass_content_ext.py  # versão script do experimento
+├── docs/relatorio-validacao-split.md  # vazamento temporal, split correto, robustez a params
+├── notebooks/                 # ver tabela abaixo
+├── multiclass_content_ext.py  # script: experimento (split aleatório)
+├── split_comparison.py        # script: aleatório vs temporal
+├── kim_params_experiment.py   # script: params do Kim nos dois splits
 └── README.md
 ```
+
+## Notebooks
+
+| Notebook | Split | Para quê |
+|---|---|---|
+| **`00-pipeline-completo.ipynb`** ⭐ | **temporal** | Pipeline ponta a ponta **correto** (download→extração→split temporal→treino→métricas). **Comece por aqui.** |
+| `02-comparacao-splits.ipynb` | ambos | Compara aleatório vs temporal por arquivo (auditoria do vazamento). |
+| `03-params-kim-gpu.ipynb` | ambos | Roda com os **hiperparâmetros do Kim** em **GPU**; métricas + matriz de confusão + ROC/PR. |
+| `05-ids-multiclasse-content-ext.ipynb` | aleatório | Comparação **Kim-12 vs content_ext** (número absoluto **otimista** — ilustrativo). |
+
+> O número **honesto** in-scope é o do split **temporal** (`00`/`02`): **macro-F1 0,966**.
+> O `05` usa split aleatório (0,9936) — válido só como comparação relativa de *features*.
 
 ## Como rodar
 
@@ -30,8 +46,9 @@ fonte original (figshare), permitindo rodar tudo **desde o tráfego cru**.
 As features já vêm no repo (`data/ours_ext/`, via Git LFS):
 ```bash
 pip install numpy scikit-learn xgboost matplotlib
-python multiclass_content_ext.py          # treina + métricas + matriz + curvas
-# ou abra notebooks/05-ids-multiclasse-content-ext.ipynb
+# RECOMENDADO: pipeline correto (split temporal) — abra notebooks/00-pipeline-completo.ipynb
+python split_comparison.py                # aleatório vs temporal (número honesto)
+python multiclass_content_ext.py          # experimento com split aleatório (otimista)
 ```
 
 ### Opção B — desde o tráfego cru (reproduz a extração)
@@ -49,9 +66,16 @@ python multiclass_content_ext.py                             # experimento
 - Índices `content_ext` em `X.npz` (21 colunas): `[0..11] + [12,13,14,16]`.
 
 ## Resultado
-macro-F1 **0,9936** · accuracy **0,9987** · ROC-AUC ≈ 1,0 — os gargalos `fuzzy`/`mitm_multi`
-(0,50/0,57 com as 12 puras) sobem para 0,998/0,989, **sem features de cabeçalho** (evitando o
-overfitting que elas causam).
+Com `content_ext` (sem cabeçalho), os gargalos `fuzzy`/`mitm_multi` das 12 features puras do Kim
+(0,50/0,57) sobem para 0,998/0,989. O desempenho depende do protocolo de avaliação:
+
+| Regime | macro-F1 |
+|---|---:|
+| Split aleatório (otimista, só ilustrativo) | 0,9936 |
+| **Split temporal por arquivo (honesto, in-scope)** | **0,9658** |
+| Zero-day / *leave-one-attack-out* (ataque novo) | ~0,60 |
+
+Detalhes e justificativa do split em [`docs/relatorio-validacao-split.md`](docs/relatorio-validacao-split.md).
 
 ## Validação do split (vazamento temporal)
 Tráfego é sequencial → um split **aleatório** infla as métricas (pacotes da mesma rajada em
