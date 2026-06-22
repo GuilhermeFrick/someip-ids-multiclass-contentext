@@ -99,6 +99,26 @@ O atacante fica ativo ao longo da captura, então o corte temporal pega rajada n
 F1 por classe (temporal): normal 0,9938 · dos 0,9979 · fuzzy 0,9979 · mitm_single 0,9916 ·
 **mitm_multi 0,8477**.
 
+## 4b. Robustez aos hiperparâmetros (parâmetros do Kim)
+
+Para descartar a hipótese de que o resultado vem de um config "agressivo" (e responder a
+revisores que pediram mais regularização), re-rodamos o mesmo `content_ext` multiclasse com os
+**hiperparâmetros exatos do Kim** (Tabela 2 do artigo): 1000 árvores, `lr=0,05`, `max_depth=6`,
+`subsample=0,8`, `colsample=0,8`, `L2=1,0` — muito mais regularizados que os nossos
+(300 árvores, `lr=0,3`, `depth=8`, sem subsampling).
+
+| Split | params do Kim | nossos params | Δ |
+|---|---:|---:|---:|
+| Aleatório 70/30 | 0,9937 | 0,9936 | +0,0001 |
+| **Temporal por arquivo** | **0,9675** | 0,9658 | +0,0017 |
+
+**Conclusão:** o desempenho é **robusto à escolha de hiperparâmetros**. Os params *mais
+regularizados* do Kim **não reduzem** a métrica — sobem levemente no temporal. Isso refuta a
+hipótese de *overfitting por sobre-parametrização*: o sinal está nas **features/dados**, não no
+config do modelo. A **única alavanca relevante continua sendo o split** (aleatório 0,99 vs
+temporal 0,97, Δ ~2,8 pts ≫ Kim-vs-nosso, Δ ~0,1 pt). Reproduzir: `kim_params_experiment.py`
+ou `notebooks/03-params-kim-gpu.ipynb` (GPU).
+
 ## 5. Conclusão
 
 - **O vazamento existe** e era real: o split aleatório inflava o resultado em **~2,8 pontos**.
