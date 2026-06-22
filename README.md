@@ -36,6 +36,7 @@ fonte original (figshare), permitindo rodar tudo **desde o tráfego cru**.
 | `02-comparacao-splits.ipynb` | ambos | Compara aleatório vs temporal por arquivo (auditoria do vazamento). |
 | `03-params-kim-gpu.ipynb` | ambos | Roda com os **hiperparâmetros do Kim** em **GPU**; métricas + matriz de confusão + ROC/PR. |
 | `05-ids-multiclasse-content-ext.ipynb` | aleatório | Comparação **Kim-12 vs content_ext** (número absoluto **otimista** — ilustrativo). |
+| `06-testar-pcap-gerado.ipynb` | 70/30 | **Testa um PCAP gerado** pelo simulador: carrega → extrai → testa → métricas + matriz de confusão. |
 
 > O número **honesto** in-scope é o do split **temporal** (`00`/`02`): **macro-F1 0,966**.
 > O `05` usa split aleatório (0,9936) — válido só como comparação relativa de *features*.
@@ -92,6 +93,20 @@ A única classe que cai forte é `mitm_multi` (0,989→0,848, a do *relay*). O l
 generalização é o **zero-day (~0,60)**, reportado no `someip-ids-benchmark`.
 **Para a dissertação:** reportar o **temporal** como in-scope honesto e o **zero-day** como
 generalização; o aleatório fica só como ilustração do viés.
+
+## Testar um PCAP gerado pelo simulador
+Para avaliar tráfego do `someip-traffic-simulator` (PCAP + `<pcap>.labels.npy`):
+
+```bash
+# 1 PCAP — carrega, extrai content_ext, treina/testa 70/30, métricas + matriz de confusão
+python eval_pcap.py traces/dataset.pcap
+
+# zero-day — treina nos conhecidos, mede detecção do ataque NOVO (normal vs ataque)
+python eval_pcap.py traces/train_known.pcap --test-pcap traces/test_novel.pcap --binary
+```
+Ou, interativo, abra **`notebooks/06-testar-pcap-gerado.ipynb`** (mostra tudo inline; roda no Colab).
+Os byte-models são ajustados no tráfego **normal do próprio PCAP** (mesmo domínio), e o ground
+truth vem do simulador (não do rotulador por IP).
 
 ## Fonte do dataset
 T. Kim et al. *SOME/IP traffic (normal and abnormal).* figshare, 2026.
