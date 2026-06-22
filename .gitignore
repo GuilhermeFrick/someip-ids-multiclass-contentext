@@ -1,0 +1,11 @@
+# PCAPs crus (baixados por scripts/download_pcaps.py) — não versionar
+data/pcap/
+*.pcap
+# artefatos
+__pycache__/
+*.pyc
+results/
+catboost_info/
+.ipynb_checkpoints/
+Thumbs.db
+.DS_Store

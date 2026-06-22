@@ -1,0 +1,23 @@
+[
+  "ip_time_interval",
+  "someip_loglik",
+  "sd_loglik",
+  "l4_loglik",
+  "someip_entropy",
+  "sd_entropy",
+  "l4_entropy",
+  "someip_change",
+  "sd_change",
+  "l4_change",
+  "ip_len_change",
+  "l4_len_change",
+  "repeat_rate",
+  "someip_len",
+  "l4_len",
+  "src_pkt_rate",
+  "src_payload_div",
+  "is_sd",
+  "src_service_div",
+  "is_relay",
+  "src_clientid_div"
+]
