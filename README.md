@@ -53,6 +53,22 @@ macro-F1 **0,9936** · accuracy **0,9987** · ROC-AUC ≈ 1,0 — os gargalos `f
 (0,50/0,57 com as 12 puras) sobem para 0,998/0,989, **sem features de cabeçalho** (evitando o
 overfitting que elas causam).
 
+## Validação do split (vazamento temporal)
+Tráfego é sequencial → um split **aleatório** infla as métricas (pacotes da mesma rajada em
+treino e teste). Comparação honesta (`split_comparison.py` / `notebooks/02-comparacao-splits.ipynb`):
+
+| Split | macro-F1 |
+|---|---:|
+| Aleatório 70/30 (otimista) | 0,9936 |
+| **Temporal por arquivo** 70/30 (honesto) | **0,9658** |
+| Zero-day / leave-one-attack-out (ataque novo) | ~0,60 |
+
+A queda existe mas é **modesta** (−2,8 pts): o modelo mantém **0,966 > 0,95** mesmo sem vazamento.
+A única classe que cai forte é `mitm_multi` (0,989→0,848, a do *relay*). O limite real de
+generalização é o **zero-day (~0,60)**, reportado no `someip-ids-benchmark`.
+**Para a dissertação:** reportar o **temporal** como in-scope honesto e o **zero-day** como
+generalização; o aleatório fica só como ilustração do viés.
+
 ## Fonte do dataset
 T. Kim et al. *SOME/IP traffic (normal and abnormal).* figshare, 2026.
 https://figshare.com/articles/dataset/SOME_IP_traffic_normal_and_abnormal_traffic_/30970450
