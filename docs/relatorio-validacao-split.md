@@ -99,6 +99,30 @@ O atacante fica ativo ao longo da captura, então o corte temporal pega rajada n
 F1 por classe (temporal): normal 0,9938 · dos 0,9979 · fuzzy 0,9979 · mitm_single 0,9916 ·
 **mitm_multi 0,8477**.
 
+### Natureza da queda do `mitm_multi`: precisão, não detecção
+
+A matriz de confusão (split temporal) mostra que o `mitm_multi` **não é um problema de detecção,
+mas de falso alarme**:
+
+| Classe | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| normal | 0,9999 | 0,9879 | 0,9939 |
+| dos | 0,9969 | 0,9994 | 0,9982 |
+| fuzzy | 0,9940 | 0,9996 | 0,9968 |
+| mitm_single | 0,9881 | 1,0000 | 0,9940 |
+| **mitm_multi** | **0,7400** | **0,9937** | 0,8483 |
+| macro avg | 0,9438 | **0,9961** | 0,9662 |
+
+O `mitm_multi` tem **recall 0,99** (quase nenhum ataque relay escapa) mas **precisão 0,74**: na
+CM, **1,2% do `normal`** é rotulado como `mitm_multi`. Como `normal` domina (~3,78M no teste),
+esse 1,2% ≈ **45k falsos positivos** contra ~124k mitm_multi reais → precisão ~0,74.
+
+**Por que faz sentido:** o MitM *relay* **republica notificações legítimas**, então seu tráfego é
+por construção *parecido com o normal* — é a fronteira mais borrada. As demais classes têm
+assinatura comportamental nítida (≥ 0,99). Em IDS automotivo, **recall alto é o critério-chave**
+(não perder ataque); o macro recall de **0,9961** mostra que o detector praticamente não deixa
+ataque passar, e o custo concentrado no relay é falso alarme — mitigável por pós-filtro/correlação.
+
 ## 4b. Robustez aos hiperparâmetros (parâmetros do Kim)
 
 Para descartar a hipótese de que o resultado vem de um config "agressivo" (e responder a
