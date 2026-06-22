@@ -144,7 +144,8 @@ def run(pcap, labels, test_pcap, test_labels, binary, out_dir):
         Xn = ((X - xmin) / np.where(xmax > xmin, xmax - xmin, 1.0)).astype(np.float32)
         Xtr, Xte, ytr, yte = train_test_split(Xn, y, test_size=0.30, random_state=0, stratify=y)
         clf = xgb(len(classes)); clf.fit(Xtr, ytr)
-        report(yte, clf.predict(Xte), classes, f"IDS sobre {os.path.basename(pcap)} (70/30)",
+        report(yte, clf.predict_proba(Xte).argmax(1), classes,
+               f"IDS sobre {os.path.basename(pcap)} (70/30)",
                os.path.join(out_dir, "cm_selftrain.png"))
         return
 
@@ -170,7 +171,7 @@ def run(pcap, labels, test_pcap, test_labels, binary, out_dir):
         novel = [c for c in np.unique(ymapt) if c not in classes]   # tipos não vistos no treino
         attack_idx = cid.get("attack")
         print(f"\n== Zero-day binário: treino={list(cid)} | tipos no teste={list(np.unique(ymapt))} ==")
-        pred = clf.predict(Xte_full)
+        pred = clf.predict_proba(Xte_full).argmax(1)
         for c in np.unique(ymapt):
             mask = ymapt == c
             if c == "normal":
@@ -185,7 +186,7 @@ def run(pcap, labels, test_pcap, test_labels, binary, out_dir):
     # transfer multiclasse: avalia só as classes presentes no treino
     keep_t = np.isin(ymapt, classes)
     yte = np.array([cid[c] for c in ymapt[keep_t]])
-    report(yte, clf.predict(Xte_full[keep_t]), classes,
+    report(yte, clf.predict_proba(Xte_full[keep_t]).argmax(1), classes,
            f"Transfer: treino {os.path.basename(pcap)} -> teste {os.path.basename(test_pcap)}",
            os.path.join(out_dir, "cm_transfer.png"))
 
