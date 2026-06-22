@@ -114,7 +114,8 @@ def xgb(n_class):
 
 def report(y_te, y_pred, classes, title, out_png):
     print(f"\n== {title} ==")
-    print(classification_report(y_te, y_pred, target_names=classes, digits=4, zero_division=0))
+    print(classification_report(y_te, y_pred, labels=range(len(classes)),
+                                target_names=classes, digits=4, zero_division=0))
     print("macro-F1:", round(f1_score(y_te, y_pred, average="macro"), 4))
     cm_plot(y_te, y_pred, classes, title, out_png)
 
@@ -129,6 +130,12 @@ def run(pcap, labels, test_pcap, test_labels, binary, out_dir):
     if test_pcap is None:
         # ----- modo auto-contido: 70/30 -----
         classes = [c for c in (ORDER + ["attack"]) if (ymap == c).sum() >= 6]
+        if len(classes) < 2:
+            u = dict(zip(*[v.tolist() for v in np.unique(ymap, return_counts=True)]))
+            print(f"\n[!] Este PCAP tem só {classes or list(u)} — não há o que classificar "
+                  f"(precisa de >=2 classes).\n    Rótulos: {u}\n    Gere um cenário COM ataques "
+                  f"(ex.: scenarios/dos.yaml ou scenarios/zeroday_train_known.yaml) e teste esse PCAP.")
+            return
         cid = {c: i for i, c in enumerate(classes)}
         keep = np.isin(ymap, classes); X, ymap = X[keep], ymap[keep]
         y = np.array([cid[c] for c in ymap])
