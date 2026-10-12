@@ -27,7 +27,7 @@ CELLS = [
        "",
        "Este experimento investiga a detecção de intrusão **multiclasse** para o protocolo",
        "SOME/IP (classes: *normal, DoS, Fuzzy, MITM-single, MITM-multi*). A investigação segue",
-       "a linha de raciocínio abaixo, com **toda a implementação à mostra**:",
+       "a linha de raciocínio abaixo, com toda a implementação detalhada:",
        "",
        "- **Parte A** — aplicamos as **12 features** do baseline (projetadas para detecção",
        "  *binária*) ao problema multiclasse e medimos o resultado.",
@@ -76,7 +76,7 @@ print(sorted(os.listdir("data/pcap")) if os.path.isdir("data/pcap") else "AUSENT
 """),
 
     # ---------------------------------------------------- motor de parsing
-    md("## 2. Implementação — motor de parsing e features (à mostra)",
+    md("## 2. Implementação — motor de parsing e features",
        "A seguir, todo o motor que transforma um PCAP cru em vetores de *features*: o **parser**",
        "SOME/IP, o **modelo de bytes** (base das features de conteúdo) e o **extrator** das 16",
        "*features* (12 do baseline + 4 propostas). Em Parte A usamos as 12; em Parte B, as 16."),
@@ -290,7 +290,7 @@ print("por classe:", dict(zip(CLASSES, np.bincount(Y, minlength=5).tolist())))
 '''),
 
     # --------------------------------------------------- funções do experimento
-    md("## 3. Funções do experimento (à mostra)",
+    md("## 3. Funções do experimento",
        "Split **temporal** (70% cronológicos de cada arquivo → treino) e as rotinas de treino,",
        "avaliação e figuras. São aplicadas, mais abaixo, às 12 e depois às 16 *features*."),
     code('''
