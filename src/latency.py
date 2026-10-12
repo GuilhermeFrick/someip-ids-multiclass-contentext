@@ -67,23 +67,35 @@ def measure(pcap_path, models, clf, content_idx, minmax,
     feats = np.asarray(feats, dtype=np.float64)
     Xn = ((feats - xmin) / rng).astype(np.float32)[:, content_idx]   # normaliza + seleciona
 
-    _ = clf.predict_proba(Xn[:min(len(Xn), 256)])    # warm-up do modelo
-    t_clf, t_dec = [], []
+    # Classificacao medida de DUAS formas, por pacote:
+    #   - inplace : booster.inplace_predict  -> custo REAL (sem overhead de DMatrix/sklearn)
+    #   - wrapper : clf.predict_proba         -> referencia (overhead da API chamada 1x1)
+    # O numero PRINCIPAL de inferencia usa o inplace (realista). decision = argmax.
+    booster = clf.get_booster()
+    warm = Xn[:min(len(Xn), 256)]
+    _ = booster.inplace_predict(warm); _ = clf.predict_proba(warm)   # warm-up
+    t_clf_ip, t_clf_wr, t_dec = [], [], []
     for row in Xn:
         r = row.reshape(1, -1)
-        a = time.perf_counter(); proba = clf.predict_proba(r); b = time.perf_counter()
-        _ = proba.argmax(1); c = time.perf_counter()
-        t_clf.append(b - a); t_dec.append(c - b)
+        a = time.perf_counter(); proba = booster.inplace_predict(r); b = time.perf_counter()
+        _ = np.asarray(proba).argmax(axis=-1); c = time.perf_counter()
+        d = time.perf_counter(); _ = clf.predict_proba(r); e = time.perf_counter()
+        t_clf_ip.append(b - a); t_dec.append(c - b); t_clf_wr.append(e - d)
 
     layer, feat = _stats(t_layer), _stats(t_feat)
-    clf_s, dec = _stats(t_clf), _stats(t_dec)
-    e2e = layer["mean_us"] + feat["mean_us"] + clf_s["mean_us"] + dec["mean_us"]
+    clf_ip, clf_wr, dec = _stats(t_clf_ip), _stats(t_clf_wr), _stats(t_dec)
+    extraction = layer["mean_us"] + feat["mean_us"]
+    inference = clf_ip["mean_us"] + dec["mean_us"]                 # realista
+    inference_wrapper = clf_wr["mean_us"] + dec["mean_us"]        # referencia
+    e2e = extraction + inference
     return {
         "n_samples": len(feats), "warmup": warmup, "n_features": len(content_idx),
         "stages_us": {"layer": layer, "feature": feat,
-                      "classification": clf_s, "decision": dec},
-        "extraction_us_per_pkt": layer["mean_us"] + feat["mean_us"],
-        "inference_us_per_pkt": clf_s["mean_us"] + dec["mean_us"],
+                      "classification_inplace": clf_ip,
+                      "classification_wrapper": clf_wr, "decision": dec},
+        "extraction_us_per_pkt": extraction,
+        "inference_us_per_pkt": inference,
+        "inference_us_per_pkt_wrapper": inference_wrapper,
         "end_to_end_us_per_pkt": e2e,
         "throughput_pps": 1e6 / e2e,
     }

@@ -154,6 +154,7 @@ def train_eval(Xn, y, counts, device: str = "cpu", n_jobs: int = -1,
 
     clf = XGBClassifier(**params)
     clf.fit(X16[itr], y[itr])
+    clf.save_model(os.path.join(out_dir, "model_16.json"))   # artefato p/ o harness de latência
     proba = clf.predict_proba(X16[ite])
     y_pred = proba.argmax(1)
     rep = classification_report(y_te, y_pred, target_names=CLASSES, digits=4, output_dict=True)
@@ -203,6 +204,11 @@ def run(pcap_dir: str = PCAP_DIR_DEFAULT, out_dir: str = "results",
     """Experimento ponta a ponta; grava results/metrics_temporal.json e retorna o dict."""
     Xn, y, counts, timing, _models, _mm = extract_all(pcap_dir, max_packets=max_packets)
     res = train_eval(Xn, y, counts, device=device, n_jobs=n_jobs, out_dir=out_dir, make_figs=make_figs)
+    # artefatos p/ o harness de latência (o modelo já foi salvo em train_eval)
+    np.savez_compressed(os.path.join(out_dir, "bytemodels.npz"),
+                        someip=_models["someip"].logP, sd=_models["sd"].logP, l4=_models["l4"].logP)
+    np.save(os.path.join(out_dir, "minmax.npy"), np.vstack(_mm))
+    json.dump(CONTENT_EXT, open(os.path.join(out_dir, "content_idx.json"), "w"))
     inf_us = res.pop("inference_us_per_pkt_batch")
     timing["inference_us_per_pkt"] = float(inf_us)
     timing["extraction_over_inference"] = float(timing["extraction_us_per_pkt"] / inf_us)
