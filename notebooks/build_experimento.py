@@ -459,10 +459,16 @@ pd.DataFrame([{"estágio": s, "12 feat (us)": latA[k], "16 feat (us)": latB[k]} 
        "é dominada pelo custo fixo da chamada do XGBoost (independente de 12 ou 16 *features*).",
        "Ou seja: **ganho grande de detecção a custo de latência praticamente nulo.**"),
 
-    md("### 7.3 Custo sob orçamento de CPU — varredura de cota (estilo Kim)",
-       "Fixamos 1 núcleo e variamos a cota de CPU (`systemd-run`), emulando o orçamento de uma",
-       "ECU. Usamos o modelo de 16 *features* (a latência de 12 é praticamente igual). Requer",
-       "`sudo`/systemd (roda na VM)."),
+    md("### 7.3 Custo sob orçamento de CPU — varredura de cota",
+       "**O que é a cota de CPU?** Via *cgroups* do Linux, limita-se a fração do tempo de CPU que",
+       "o processo pode usar em **um núcleo**: 100% = um núcleo inteiro; 50% = metade do tempo de",
+       "um núcleo; 5% = 1/20 — progressivamente mais fraco. Isso **emula o orçamento de computação",
+       "de uma ECU** de *gateway*/domínio, que tem CPU limitada. Variando a cota, estima-se a",
+       "latência do detector em ECUs de diferentes capacidades — a **mesma metodologia da Tabela 5",
+       "do Kim** (que reporta ~556 µs/pacote a 1 núcleo/100%).",
+       "",
+       "Fixamos 1 núcleo e varremos a cota (`systemd-run`); ao final, 2/4/8 núcleos (200/400/800%).",
+       "Usamos o modelo de 16 *features* (a latência de 12 é praticamente igual). Requer `sudo`/systemd."),
     code('''
 # Salva os artefatos do modelo de 16 features e roda a varredura de cota (script externo)
 os.makedirs("results", exist_ok=True)
@@ -472,12 +478,16 @@ np.save("results/minmax.npy", np.vstack([XMIN, XMAX])); json.dump(IDX_16, open("
 os.system("bash scripts/cpu_quota.sh")
 QP = "results/latency_quota.json"
 if os.path.exists(QP):
-    Q = json.load(open(QP)); q1 = [r for r in Q if r["allowed_cpus"] == "0"]
-    dfq = pd.DataFrame([{"cota %": r["cpu_quota_pct"], "e2e us/pkt": round(r["latency"]["end_to_end_us_per_pkt"], 1),
-                         "pps": round(r["latency"]["throughput_pps"])} for r in q1])
+    Q = json.load(open(QP))
+    NUC = {"0": 1, "0-1": 2, "0-3": 4, "0-7": 8}   # AllowedCPUs -> nº de núcleos
+    # Tabela no formato da Tabela 5 do Kim: Núcleos | Cota (%) | Latência (us/pacote)
+    dfq = pd.DataFrame([{"Núcleos": NUC.get(r["allowed_cpus"], 1), "Cota (%)": r["cpu_quota_pct"],
+                         "Latência (us/pacote)": round(r["latency"]["end_to_end_us_per_pkt"], 1),
+                         "pacotes/s": round(r["latency"]["throughput_pps"])} for r in Q])
     display(dfq)
-    plt.figure(figsize=(7, 4)); plt.plot(dfq["cota %"], dfq["e2e us/pkt"], "o-")
-    plt.xlabel("Cota de CPU (%) — 1 núcleo"); plt.ylabel("Latência end-to-end (us/pkt)")
+    q1 = dfq[dfq["Núcleos"] == 1]
+    plt.figure(figsize=(7, 4)); plt.plot(q1["Cota (%)"], q1["Latência (us/pacote)"], "o-")
+    plt.xlabel("Cota de CPU (%) — 1 núcleo"); plt.ylabel("Latência (us/pacote)")
     plt.title("Latência × cota de CPU (16 features, 1 núcleo)"); plt.grid(alpha=.3); plt.tight_layout(); plt.show()
 else:
     print("varredura indisponível (sem systemd/sudo) — rode na VM.")
