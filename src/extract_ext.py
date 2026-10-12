@@ -45,27 +45,26 @@ FEATURE_NAMES = [
 ]
 
 
-def extract_file(path, models, attack_type=labeler.NORMAL, benign_ips=None, max_packets=None):
-    last = {}
-    benign_ips = benign_ips or set()
-    attacker_ips = set()
-    # estado das features comportamentais
-    recent_pld = defaultdict(lambda: deque(maxlen=5))      # por fluxo
-    src_ts = defaultdict(lambda: deque(maxlen=1000))       # por src
-    src_pld = defaultdict(lambda: deque(maxlen=1000))      # por src
-    src_svc = defaultdict(lambda: deque(maxlen=100))       # por src
-    src_cid = defaultdict(lambda: deque(maxlen=100))       # por src
-    X, ymul = [], []
-    n = 0
-    for raw, meta in RawPcapReader(path):
-        n += 1
-        if max_packets and n > max_packets:
-            break
-        p = someip.parse(raw, _ts(meta))
-        if p is None:
-            continue
+class FeatureStreamer:
+    """Extração com estado, pacote a pacote (mesma lógica do extract_file original).
+
+    Fonte única: `extract_file` (lote) e `src/latency.py` (por pacote, p/ medir tempo)
+    usam esta classe, de modo que o cálculo das 21 features é idêntico nos dois.
+    `step(p, models)` calcula o vetor do pacote e ATUALIZA o estado interno (janelas
+    por fluxo e por origem), devolvendo a tupla de 21 features.
+    """
+
+    def __init__(self):
+        self.last = {}                                          # por fluxo (flow_key)
+        self.recent_pld = defaultdict(lambda: deque(maxlen=5))  # por fluxo
+        self.src_ts = defaultdict(lambda: deque(maxlen=1000))   # por origem
+        self.src_pld = defaultdict(lambda: deque(maxlen=1000))  # por origem
+        self.src_svc = defaultdict(lambda: deque(maxlen=100))   # por origem
+        self.src_cid = defaultdict(lambda: deque(maxlen=100))   # por origem
+
+    def step(self, p, models) -> tuple:
         fk = someip.flow_key(p)
-        st = last.get(fk)
+        st = self.last.get(fk)
 
         # --- core relacionais ---
         if st is None:
@@ -87,53 +86,61 @@ def extract_file(path, models, attack_type=labeler.NORMAL, benign_ips=None, max_
         l4_h = models["l4"].cross_entropy(p.pl_l4) if p.pl_l4 else 0.0
 
         # --- ext comportamentais ---
-        # f13 repeat rate (fração dos últimos 5 payloads SOME/IP iguais ao atual)
-        h = recent_pld[fk]
+        h = self.recent_pld[fk]
         repeat_rate = (sum(1 for q in h if q == p.pl_someip) / len(h)) if (h and p.pl_someip) else 0.0
         h.append(p.pl_someip)
-        # f15/f16 comprimentos
         someip_len = float(len(p.pl_someip))
         l4_len = float(len(p.pl_l4))
-        # f17 taxa de pacotes por src (janela 1000)
-        wt = src_ts[p.src]; wt.append(p.ts)
+        wt = self.src_ts[p.src]; wt.append(p.ts)
         if len(wt) >= 2:
             d = wt[-1] - wt[0]
             src_pkt_rate = (len(wt) - 1) / d if d > 0 else float(len(wt))
         else:
             src_pkt_rate = 0.0
-        # f18 diversidade de payload por src
-        wp = src_pld[p.src]
+        wp = self.src_pld[p.src]
         if p.pl_someip:
             wp.append(p.pl_someip)
         src_payload_div = (len(set(wp)) / len(wp)) if len(wp) > 1 else 0.0
-        # f19 is_sd
         is_sd = 1.0 if p.is_sd else 0.0
-        # f20 diversidade de serviços por src
-        ws = src_svc[p.src]
+        ws = self.src_svc[p.src]
         if p.service_id >= 0:
             ws.append(p.service_id)
         src_service_div = float(len(set(ws))) if ws else 1.0
-        # f21 relay service
         is_relay = 1.0 if p.service_id == RELAY_SERVICE else 0.0
-        # f22 diversidade de client_id em REQUESTs (msg_type < 0x80) por src
-        wc = src_cid[p.src]
+        wc = self.src_cid[p.src]
         if p.client_id >= 0 and 0 <= p.msg_type < 0x80:
             wc.append(p.client_id)
         src_clientid_div = float(len(set(wc))) if wc else 1.0
 
-        X.append((iat, someip_ll, sd_ll, l4_ll, someip_h, sd_h, l4_h,
-                  someip_chg, sd_chg, l4_chg, ip_len_chg, l4_len_chg,
-                  repeat_rate, someip_len, l4_len, src_pkt_rate, src_payload_div,
-                  is_sd, src_service_div, is_relay, src_clientid_div))
+        self.last[fk] = {"ts": p.ts, "ip_len": p.ip_len, "l4": p.pl_l4,
+                         "someip": p.pl_someip, "sd": p.pl_sd}
+        return (iat, someip_ll, sd_ll, l4_ll, someip_h, sd_h, l4_h,
+                someip_chg, sd_chg, l4_chg, ip_len_chg, l4_len_chg,
+                repeat_rate, someip_len, l4_len, src_pkt_rate, src_payload_div,
+                is_sd, src_service_div, is_relay, src_clientid_div)
 
+
+def extract_file(path, models, attack_type=labeler.NORMAL, benign_ips=None, max_packets=None):
+    """Extrai as 21 features de todos os pacotes de um PCAP (via FeatureStreamer) e
+    atribui o rótulo por nó atacante (origem fora do conjunto benigno)."""
+    streamer = FeatureStreamer()
+    benign_ips = benign_ips or set()
+    attacker_ips = set()
+    X, ymul = [], []
+    n = 0
+    for raw, meta in RawPcapReader(path):
+        n += 1
+        if max_packets and n > max_packets:
+            break
+        p = someip.parse(raw, _ts(meta))
+        if p is None:
+            continue
+        X.append(streamer.step(p, models))
         atk = labeler.NORMAL
         if attack_type != labeler.NORMAL and p.src not in benign_ips:
             atk = attack_type
             attacker_ips.add(p.src)
         ymul.append(atk)
-
-        last[fk] = {"ts": p.ts, "ip_len": p.ip_len, "l4": p.pl_l4,
-                    "someip": p.pl_someip, "sd": p.pl_sd}
     return X, ymul, attacker_ips
 
 
