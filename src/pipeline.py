@@ -26,7 +26,7 @@ from extract_ext import extract_file, FEATURE_NAMES
 
 CLASSES = ["normal", "dos", "fuzzy", "mitm_single", "mitm_multi"]
 N = len(CLASSES)
-CONTENT_EXT = list(range(12)) + [12, 13, 14, 16]   # 16 features comportamentais, sem cabeçalho
+CONTENT_EXT = list(range(16))   # as 16 features (12 do baseline + 4 propostas), sem cabeçalho
 
 
 def machine_info() -> dict:

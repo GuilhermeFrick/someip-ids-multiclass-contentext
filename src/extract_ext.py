@@ -32,41 +32,35 @@ from bytemodel import hamming
 from extract import (fit_bytemodels, BENIGN_FILE, ATTACK_FILES, PCAP_DIR_DEFAULT,
                      L, _ts)
 
-RELAY_SERVICE = 0x100B
-
 FEATURE_NAMES = [
-    # core (12)
+    # 12 do baseline (conteúdo + temporização, por camada)
     "ip_time_interval", "someip_loglik", "sd_loglik", "l4_loglik",
     "someip_entropy", "sd_entropy", "l4_entropy",
     "someip_change", "sd_change", "l4_change", "ip_len_change", "l4_len_change",
-    # ext (9)
-    "repeat_rate", "someip_len", "l4_len", "src_pkt_rate", "src_payload_div",
-    "is_sd", "src_service_div", "is_relay", "src_clientid_div",
+    # 4 propostas (comportamentais): payload repetition, absolute size (2), source diversity
+    "repeat_rate", "someip_len", "l4_len", "src_payload_div",
 ]
 
 
 class FeatureStreamer:
-    """Extração com estado, pacote a pacote (mesma lógica do extract_file original).
+    """Extração com estado, pacote a pacote (as 16 features: 12 do baseline + 4 propostas).
 
     Fonte única: `extract_file` (lote) e `src/latency.py` (por pacote, p/ medir tempo)
-    usam esta classe, de modo que o cálculo das 21 features é idêntico nos dois.
+    usam esta classe, de modo que o cálculo das 16 features é idêntico nos dois.
     `step(p, models)` calcula o vetor do pacote e ATUALIZA o estado interno (janelas
-    por fluxo e por origem), devolvendo a tupla de 21 features.
+    por fluxo e por origem), devolvendo a tupla de 16 features.
     """
 
     def __init__(self):
         self.last = {}                                          # por fluxo (flow_key)
-        self.recent_pld = defaultdict(lambda: deque(maxlen=5))  # por fluxo
-        self.src_ts = defaultdict(lambda: deque(maxlen=1000))   # por origem
-        self.src_pld = defaultdict(lambda: deque(maxlen=1000))  # por origem
-        self.src_svc = defaultdict(lambda: deque(maxlen=100))   # por origem
-        self.src_cid = defaultdict(lambda: deque(maxlen=100))   # por origem
+        self.recent_pld = defaultdict(lambda: deque(maxlen=5))  # por fluxo  (repeat_rate)
+        self.src_pld = defaultdict(lambda: deque(maxlen=1000))  # por origem (src_payload_div)
 
     def step(self, p, models) -> tuple:
         fk = someip.flow_key(p)
         st = self.last.get(fk)
 
-        # --- core relacionais ---
+        # --- 12 do baseline: temporização e mudanças ---
         if st is None:
             iat = 0.0; ip_len_chg = 0; l4_len_chg = 0
             someip_chg = sd_chg = l4_chg = 0
@@ -78,6 +72,7 @@ class FeatureStreamer:
             someip_chg = hamming(p.pl_someip, st["someip"]) if (p.pl_someip or st["someip"]) else 0
             sd_chg = hamming(p.pl_sd, st["sd"]) if (p.pl_sd or st["sd"]) else 0
 
+        # --- 12 do baseline: conteúdo (byte-model) ---
         someip_ll = models["someip"].loglik(p.pl_someip) if p.pl_someip else 0.0
         sd_ll = models["sd"].loglik(p.pl_sd) if p.pl_sd else 0.0
         l4_ll = models["l4"].loglik(p.pl_l4) if p.pl_l4 else 0.0
@@ -85,43 +80,26 @@ class FeatureStreamer:
         sd_h = models["sd"].cross_entropy(p.pl_sd) if p.pl_sd else 0.0
         l4_h = models["l4"].cross_entropy(p.pl_l4) if p.pl_l4 else 0.0
 
-        # --- ext comportamentais ---
+        # --- 4 propostas ---
         h = self.recent_pld[fk]
-        repeat_rate = (sum(1 for q in h if q == p.pl_someip) / len(h)) if (h and p.pl_someip) else 0.0
+        repeat_rate = (sum(1 for q in h if q == p.pl_someip) / len(h)) if (h and p.pl_someip) else 0.0  # payload repetition
         h.append(p.pl_someip)
-        someip_len = float(len(p.pl_someip))
-        l4_len = float(len(p.pl_l4))
-        wt = self.src_ts[p.src]; wt.append(p.ts)
-        if len(wt) >= 2:
-            d = wt[-1] - wt[0]
-            src_pkt_rate = (len(wt) - 1) / d if d > 0 else float(len(wt))
-        else:
-            src_pkt_rate = 0.0
+        someip_len = float(len(p.pl_someip))                     # absolute size (1/2)
+        l4_len = float(len(p.pl_l4))                             # absolute size (2/2)
         wp = self.src_pld[p.src]
         if p.pl_someip:
             wp.append(p.pl_someip)
-        src_payload_div = (len(set(wp)) / len(wp)) if len(wp) > 1 else 0.0
-        is_sd = 1.0 if p.is_sd else 0.0
-        ws = self.src_svc[p.src]
-        if p.service_id >= 0:
-            ws.append(p.service_id)
-        src_service_div = float(len(set(ws))) if ws else 1.0
-        is_relay = 1.0 if p.service_id == RELAY_SERVICE else 0.0
-        wc = self.src_cid[p.src]
-        if p.client_id >= 0 and 0 <= p.msg_type < 0x80:
-            wc.append(p.client_id)
-        src_clientid_div = float(len(set(wc))) if wc else 1.0
+        src_payload_div = (len(set(wp)) / len(wp)) if len(wp) > 1 else 0.0                              # source diversity
 
         self.last[fk] = {"ts": p.ts, "ip_len": p.ip_len, "l4": p.pl_l4,
                          "someip": p.pl_someip, "sd": p.pl_sd}
         return (iat, someip_ll, sd_ll, l4_ll, someip_h, sd_h, l4_h,
                 someip_chg, sd_chg, l4_chg, ip_len_chg, l4_len_chg,
-                repeat_rate, someip_len, l4_len, src_pkt_rate, src_payload_div,
-                is_sd, src_service_div, is_relay, src_clientid_div)
+                repeat_rate, someip_len, l4_len, src_payload_div)
 
 
 def extract_file(path, models, attack_type=labeler.NORMAL, benign_ips=None, max_packets=None):
-    """Extrai as 21 features de todos os pacotes de um PCAP (via FeatureStreamer) e
+    """Extrai as 16 features de todos os pacotes de um PCAP (via FeatureStreamer) e
     atribui o rótulo por nó atacante (origem fora do conjunto benigno)."""
     streamer = FeatureStreamer()
     benign_ips = benign_ips or set()
