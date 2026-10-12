@@ -9,3 +9,7 @@ catboost_info/
 .ipynb_checkpoints/
 Thumbs.db
 .DS_Store
+
+# ambiente virtual
+.venv/
+venv/
