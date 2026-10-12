@@ -1,0 +1,5 @@
+numpy
+scapy
+xgboost==3.3.0
+scikit-learn
+matplotlib
