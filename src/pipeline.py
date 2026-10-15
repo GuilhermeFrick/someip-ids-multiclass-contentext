@@ -32,13 +32,20 @@ CONTENT_EXT = list(range(16))   # as 16 features (12 do baseline + 4 propostas),
 # daqui (`from pipeline import MODEL_PARAMS`) em vez de redeclarar, para que o
 # modelo avaliado seja exatamente o mesmo que é embarcado no sensor em C++.
 #
-# 50 rodadas e profundidade 4 vieram de uma varredura qualidade x custo sobre o
-# dataset completo: macro-F1 0,9695 contra 0,9640 das 300 rodadas com
-# profundidade 8, com 23x menos nós e inferência 16x mais barata. O modelo maior
+# Escolhidos por varredura em um conjunto de VALIDAÇÃO recortado de dentro do
+# treino (split aninhado, preservando a ordem temporal), nunca no teste. O teste
+# só foi usado para reportar, depois de retreinar no treino completo.
+#
+# Isso importa: uma varredura anterior, feita olhando o teste, elegia 50 rodadas
+# com profundidade 4, que tinha o melhor teste (0,9695) e uma validação ruim
+# (0,9418, sétimo lugar) — vantagem por sorte no conjunto de reporte.
+#
+# A configuração escolhida dá macro-F1 0,9689 no teste, contra 0,9640 das 300
+# rodadas com profundidade 8 usadas antes, com 6,7x menos nós. O modelo maior
 # sobreajustava, e a classe mais difícil (MITM-multi) era a que mais sofria:
-# ela sobe de 0,8380 para 0,8630. Ver someip-testbench/experiments/model-sweep.
-MODEL_ROUNDS = 50
-MODEL_DEPTH = 4
+# ela sobe de 0,8380 para 0,8580. Ver someip-testbench/experiments/model-sweep.
+MODEL_ROUNDS = 25
+MODEL_DEPTH = 8
 
 
 def model_params(device: str = "cpu", n_jobs: int = -1) -> dict:
