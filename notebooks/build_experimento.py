@@ -307,7 +307,10 @@ def temporal_split(counts, frac=0.70):
     return np.concatenate(tr), np.concatenate(te)
 ITR, ITE = temporal_split(COUNTS); Y_TE = Y[ITE]
 
-PARAMS = dict(objective="multi:softprob", num_class=NCLS, n_estimators=300, max_depth=8,
+# Hiperparametros: o notebook e autocontido de proposito, entao os valores sao
+# repetidos aqui. A fonte unica e MODEL_ROUNDS/MODEL_DEPTH em src/pipeline.py;
+# se mudar la, mude aqui tambem.
+PARAMS = dict(objective="multi:softprob", num_class=NCLS, n_estimators=50, max_depth=4,
               learning_rate=0.3, tree_method="hist", device=DEVICE, max_bin=256,
               n_jobs=-1, eval_metric="mlogloss")
 

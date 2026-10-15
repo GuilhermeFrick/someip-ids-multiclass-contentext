@@ -28,6 +28,26 @@ CLASSES = ["normal", "dos", "fuzzy", "mitm_single", "mitm_multi"]
 N = len(CLASSES)
 CONTENT_EXT = list(range(16))   # as 16 features (12 do baseline + 4 propostas), sem cabeçalho
 
+# FONTE ÚNICA dos hiperparâmetros do modelo. Todo script que treina deve importar
+# daqui (`from pipeline import MODEL_PARAMS`) em vez de redeclarar, para que o
+# modelo avaliado seja exatamente o mesmo que é embarcado no sensor em C++.
+#
+# 50 rodadas e profundidade 4 vieram de uma varredura qualidade x custo sobre o
+# dataset completo: macro-F1 0,9695 contra 0,9640 das 300 rodadas com
+# profundidade 8, com 23x menos nós e inferência 16x mais barata. O modelo maior
+# sobreajustava, e a classe mais difícil (MITM-multi) era a que mais sofria:
+# ela sobe de 0,8380 para 0,8630. Ver someip-testbench/experiments/model-sweep.
+MODEL_ROUNDS = 50
+MODEL_DEPTH = 4
+
+
+def model_params(device: str = "cpu", n_jobs: int = -1) -> dict:
+    """Hiperparâmetros do modelo. Única definição do projeto."""
+    return dict(objective="multi:softprob", num_class=N,
+                n_estimators=MODEL_ROUNDS, max_depth=MODEL_DEPTH,
+                learning_rate=0.3, tree_method="hist", device=device,
+                max_bin=256, n_jobs=n_jobs, eval_metric="mlogloss")
+
 
 def machine_info() -> dict:
     info = {"platform": platform.platform(),
@@ -144,9 +164,7 @@ def train_eval(Xn, y, counts, device: str = "cpu", n_jobs: int = -1,
     from xgboost import XGBClassifier
     os.makedirs(out_dir, exist_ok=True)
 
-    params = dict(objective="multi:softprob", num_class=N, n_estimators=300, max_depth=8,
-                  learning_rate=0.3, tree_method="hist", device=device,
-                  max_bin=256, n_jobs=n_jobs, eval_metric="mlogloss")
+    params = model_params(device=device, n_jobs=n_jobs)
     X16 = Xn[:, CONTENT_EXT]
     fnames = [FEATURE_NAMES[i] for i in CONTENT_EXT]
     itr, ite = temporal_split(counts)

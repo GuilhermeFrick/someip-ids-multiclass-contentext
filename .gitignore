@@ -13,3 +13,5 @@ Thumbs.db
 # ambiente virtual
 .venv/
 venv/
+features.npz
+*.log
