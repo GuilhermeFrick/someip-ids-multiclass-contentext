@@ -27,7 +27,7 @@ def save_cm(y_te, pred, label, macro, out):
     ax.set_xticks(range(N)); ax.set_yticks(range(N))
     ax.set_xticklabels(DNAMES, rotation=45, ha="right"); ax.set_yticklabels(DNAMES)
     ax.set_xlabel("Previsto"); ax.set_ylabel("Real")
-    ax.set_title("Matriz de confusao - %s (macro-F1 %.3f)" % (label, macro))
+    # sem titulo na imagem: a legenda do LaTeX ja identifica a figura
     for i in range(N):
         for j in range(N):
             ax.text(j, i, "%.1f%%" % (cmn[i, j] * 100), ha="center", va="center",
