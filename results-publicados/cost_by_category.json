@@ -1,0 +1,50 @@
+{
+  "n_packets": 200000,
+  "reps": 7,
+  "parse_us_per_pkt": 2.3496770492887924,
+  "cost_by_category_us_per_pkt": {
+    "Time interval": {
+      "mean": 0.5114503421412208,
+      "std": 0.005350275610091242
+    },
+    "Payload likelihood": {
+      "mean": 3.553202225718581,
+      "std": 0.010217298904609628
+    },
+    "Payload entropy": {
+      "mean": 3.319589442139009,
+      "std": 0.01122774801230345
+    },
+    "Payload changes": {
+      "mean": 2.289692097859058,
+      "std": 0.019828143455780878
+    },
+    "Length changes": {
+      "mean": 0.08540763642616055,
+      "std": 0.01725241877001178
+    },
+    "Payload repetition": {
+      "mean": 0.5499867014285493,
+      "std": 0.05253530264402417
+    },
+    "Absolute size": {
+      "mean": 0.11353968214409958,
+      "std": 0.03710008643818291
+    },
+    "Source diversity": {
+      "mean": 9.132461590709552,
+      "std": 0.20816712880755786
+    }
+  },
+  "total_extraction_us_per_pkt": 21.905006767855024,
+  "importance_gain_by_category": {
+    "Time interval": 870.5270385742188,
+    "Payload likelihood": 11723.07763671875,
+    "Payload entropy": 6044.027191162109,
+    "Payload changes": 6937.403778076172,
+    "Length changes": 391.2487983703613,
+    "Payload repetition": 8491.4296875,
+    "Absolute size": 679.3707885742188,
+    "Source diversity": 2041.0057373046875
+  }
+}

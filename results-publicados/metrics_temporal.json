@@ -1,0 +1,109 @@
+{
+  "machine": {
+    "platform": "Linux-6.17.0-1017-aws-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "cpu_logical": 8,
+    "cpu_physical": 8,
+    "ram_gb": 16.4
+  },
+  "timing": {
+    "bytemodel_fit_s": 18.85535676499967,
+    "extraction_total_s": 442.34987849700065,
+    "extraction_us_per_pkt": 31.078400670495558,
+    "inference_us_per_pkt": 2.600135995763773,
+    "extraction_over_inference": 11.952605833360066
+  },
+  "split": "temporal_by_file_70_30",
+  "params": {
+    "objective": "multi:softprob",
+    "num_class": 5,
+    "n_estimators": 300,
+    "max_depth": 8,
+    "learning_rate": 0.3,
+    "tree_method": "hist",
+    "device": "cpu",
+    "max_bin": 256,
+    "n_jobs": -1,
+    "eval_metric": "mlogloss"
+  },
+  "test_counts": {
+    "normal": 3780722,
+    "dos": 99940,
+    "fuzzy": 170209,
+    "mitm_single": 94360,
+    "mitm_multi": 124777
+  },
+  "model_16feat": {
+    "macro_f1": 0.9639515921624163,
+    "accuracy": 0.9883974456253947,
+    "per_class": {
+      "normal": {
+        "precision": 0.9998269572713037,
+        "recall": 0.987254815350084,
+        "f1-score": 0.9935011147334328
+      },
+      "dos": {
+        "precision": 0.9936717677260154,
+        "recall": 0.99925955573344,
+        "f1-score": 0.9964578281996788
+      },
+      "fuzzy": {
+        "precision": 0.9984442513620139,
+        "recall": 0.9991892320617594,
+        "f1-score": 0.9988166027984554
+      },
+      "mitm_single": {
+        "precision": 0.9861523347686133,
+        "recall": 0.9999894022891056,
+        "f1-score": 0.9930226684346782
+      },
+      "mitm_multi": {
+        "precision": 0.7259547632468997,
+        "recall": 0.9908316436522756,
+        "f1-score": 0.8379597466458363
+      }
+    },
+    "roc_auc": {
+      "normal": 0.9992304675756021,
+      "dos": 0.999991705415022,
+      "fuzzy": 0.9999992882339475,
+      "mitm_single": 0.9999999375187407,
+      "mitm_multi": 0.9973848835582505
+    },
+    "pr_ap": {
+      "normal": 0.9999003120596739,
+      "dos": 0.9996111760765621,
+      "fuzzy": 0.9999832638327902,
+      "mitm_single": 0.9999970159167351,
+      "mitm_multi": 0.9232617749658739
+    },
+    "feature_importance_gain": {
+      "repeat_rate": 1739.976318359375,
+      "sd_loglik": 1371.98681640625,
+      "someip_entropy": 795.5865478515625,
+      "l4_change": 752.4688110351562,
+      "l4_loglik": 703.2146606445312,
+      "someip_loglik": 591.8701782226562,
+      "src_payload_div": 285.4453430175781,
+      "someip_len": 165.84768676757812,
+      "l4_entropy": 165.39593505859375,
+      "l4_len": 164.1908721923828,
+      "sd_entropy": 149.17703247070312,
+      "ip_len_change": 119.4748764038086,
+      "sd_change": 110.67744445800781,
+      "ip_time_interval": 100.45741271972656,
+      "someip_change": 21.290950775146484,
+      "l4_len_change": 8.583086013793945
+    }
+  },
+  "ablation_12feat": {
+    "macro_f1": 0.7792503474524298,
+    "per_class_f1": {
+      "normal": 0.9746083162036902,
+      "dos": 0.8572289533382987,
+      "fuzzy": 0.5449709371494612,
+      "mitm_single": 0.9423425589245825,
+      "mitm_multi": 0.5771009716461163
+    }
+  }
+}
