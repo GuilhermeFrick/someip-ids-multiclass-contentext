@@ -153,3 +153,45 @@ A configuração "sem `source diversity`" é a mesma que o `no_srcdiv` da ablaç
 dois scripts, rodados separadamente, dão **0,779456** nos dois, igual até o último
 dígito, e o `all16` também coincide exatamente. O pipeline é determinístico, e os
 dois experimentos se checam mutuamente.
+
+---
+
+## 4. Por que o determinismo importa, e de onde ele vem
+
+Com `tree_method="hist"`, `max_bin=256` e sem `subsample` nem `colsample`, o treino
+não tem nada a sortear: `random_state` não muda o resultado. Isso foi verificado
+diretamente na bancada, em `experiments/model-sweep/ablation.json`, que repete 7
+configurações com 3 sementes cada: as **21 execuções têm desvio zero**.
+
+A consequência prática é que **nenhum número deste repositório precisa de repetição
+de semente**, e comparações de uma execução só são legítimas. É também o que explica
+as três coincidências exatas observadas aqui: `select_hyperparams` com a varredura da
+bancada, `ablate_features` com o `loo`, e o `all16` entre os dois.
+
+### E isso fecha uma objeção ao artigo
+
+A configuração `r50_d4` (50 estimadores, profundidade 4) tem o **melhor macro-F1 de
+teste** de toda a grade, 0,9695 contra 0,9689 da escolhida. A objeção natural é: *e
+se ela for mesmo melhor?*
+
+| | `r50_d4` | `r25_d8` (adotada) |
+|---|---:|---:|
+| macro-F1 de **teste** | **0,9695** (1º de 15) | 0,9689 |
+| macro-F1 de **validação** | 0,9418 (**7º de 15**) | **0,9576** (1º de 15) |
+
+A vantagem de +0,0007 no teste é **reproduzível**, não é ruído de semente, e o
+desvio zero prova isso. Mas ela não aparece na validação, onde a mesma configuração
+cai para sétima. Ou seja: a vantagem não é ruído de **semente**, é ruído de **escolha
+de conjunto**. É exatamente a assinatura que a seleção no teste não consegue
+distinguir de mérito, e é por isso que o critério é a validação.
+
+## Onde mais este experimento existe
+
+A varredura foi **executada** na bancada, em
+[`someip-testbench`](https://github.com/GuilhermeFrick/someip-testbench), sob
+`experiments/model-sweep/`, e consolidada aqui para o artigo. As duas versões não
+são cópias: lá o registro inclui `n_nodes`, tamanho de tabela e latência em C
+(`p50_us`, `p99_us`), porque a pergunta de lá é *o que embarcar*. A pergunta daqui é
+*o que publicar*, então o registro inclui F1 por classe na validação e a grade.
+
+Para o artigo, **este repositório é o canônico**.
