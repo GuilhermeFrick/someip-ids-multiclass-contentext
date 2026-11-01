@@ -64,3 +64,9 @@ Ele foi gerado **antes** da seleção de hiperparâmetros: registra
 `n_estimators = 300, max_depth = 8`, a configuração antiga. O modelo final tem 25
 estimadores. As métricas de detecção ali não são as do modelo final, e sim as do
 baseline que `select_hyperparams.py` substituiu (0,9640 contra 0,9689 de macro-F1).
+
+✅ **Confirmado em 01/11/2026, com a VM de treino religada:** o `metrics_temporal.json` que estava
+lá é **byte a byte igual** a este. Não existe uma versão mais recente dele em lugar nenhum — o
+`run_experiment.py` nunca foi rodado de novo depois da seleção. Quem precisar das métricas do
+modelo adotado tem de rodar o experimento outra vez, e os artefatos para isso estão em
+[`artefatos-treino/`](../artefatos-treino/).
