@@ -74,7 +74,8 @@ def avalia(nome, Xtr, ytr, Xte, yte):
                            "f1": float(2 * p * r / max(p + r, 1e-12))}
     res = {"exp": nome, "macro_f1": float(np.mean([v["f1"] for v in por.values()])),
            "fpr_normal": float(1 - por["normal"]["recall"]), "por_classe": por,
-           "matriz_confusao": cm.tolist(), "segundos": time.time() - t0}
+           "matriz_confusao": cm.tolist(), "importancia_gain": bst.get_score(importance_type="gain"),
+           "segundos": time.time() - t0}
     print("\n== %s  macro-F1 %.4f  FP %.3f%%" % (nome, res["macro_f1"], 100 * res["fpr_normal"]))
     print("%-12s %s" % ("real\\pred", " ".join("%11s" % c for c in CLASSES)))
     for c in range(5):
