@@ -100,3 +100,21 @@ Rótulo do Kim, XGBoost com os hiperparâmetros da Tabela 2. Os JSON saem em `--
 
 Com as 12 features, 64% do Fuzzy é classificado como normal, e DoS e MITM single se confundem
 entre si (na divisão temporal, 35% do DoS vira MITM single).
+
+**12 × 16 features** (`scripts/kim_c1_multiclass.py`; as 4 da C1 calculadas sobre as mesmas linhas),
+divisão temporal 70/30, F1:
+
+| | rótulo do Kim, 12 | rótulo do Kim, 16 | rótulo por MAC, 12 | rótulo por MAC, 16 |
+|---|---|---|---|---|
+| macro-F1 | 0,783 | 0,921 | 0,728 | 0,906 |
+| FP | 0,31% | 0,23% | 0,36% | 1,08% |
+| normal | 0,982 | 0,999 | 0,973 | 0,994 |
+| DoS | 0,622 | 0,797 | 0,612 | 0,812 |
+| Fuzzy | 0,551 | 0,992 | 0,547 | 0,996 |
+| MITM single | 0,778 | 0,834 | 0,779 | 0,832 |
+| MITM multi | 0,984 | 0,981 | 0,731 | 0,897 |
+
+Na divisão do Kim, com o rótulo do Kim: 0,816 com 12 e 0,972 com 16. As 4 features da C1 resolvem o
+Fuzzy em todos os cenários. A confusão DoS ↔ MITM single persiste com as 12 colunas fiéis (cerca de 30%
+do DoS vira MITM single), o que não ocorria com o extrator anterior da C1, que usava o pacote anterior
+do mesmo fluxo.
