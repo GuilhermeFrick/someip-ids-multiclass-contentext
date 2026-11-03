@@ -1,0 +1,79 @@
+# Engenharia reversa do extrator de Kim et al. (2026)
+
+Kim et al. (Systems 2026, 14, 196) publicaram no Figshare os PCAPs e os vetores de features já
+extraídos (`X_train.npy`, `X_test.npy`, `y_*.npy`), mas não o código. O artigo descreve as
+fórmulas (Eq. 1 a 7) e omite detalhes que mudam o valor das features. Este documento registra
+como o extrator foi recuperado a partir dos próprios vetores e o que ele faz de fato. A
+implementação fiel está em [`src/kim_faithful.py`](../src/kim_faithful.py).
+
+## Resultado
+
+| conferência | resultado |
+|---|---|
+| total de linhas | 14.233.347, igual ao do Kim |
+| bloco benigno (2.193.801 linhas), 12 colunas normalizadas | idêntico linha a linha (resíduo ≤ 3,3e-7, precisão do float32) |
+| rótulos (1.662.318 ataques) | idênticos |
+| `X_train` e `X_test` completos, reconstruídos dos PCAPs | 99,93% das linhas idênticas; 4.981 + 4.977 linhas (0,07%) diferem, todas nos PCAPs de ataque, sobretudo nas colunas do payload TCP/UDP, provavelmente por remontagem de segmentos TCP |
+
+Scripts: `scripts/kim_validate.py` (extrai e confere o bloco benigno),
+`scripts/kim_label_rule.py` (recupera os pacotes rotulados como ataque),
+`scripts/kim_normal_order.py` e `scripts/kim_rebuild.py` (remontam e conferem os arrays).
+
+## Como o extrator do Kim funciona
+
+**Pacotes.** Todos os quadros IPv4 com TCP ou UDP, em ordem de captura. O primeiro pacote de
+cada PCAP é descartado.
+
+**"Pacote anterior" é sempre o anterior da captura inteira**, não o do mesmo fluxo. O artigo
+afirma o contrário ("restricted to packets that share the same source and destination IP
+addresses and transport-layer ports", p. 16).
+
+| col. | feature | definição |
+|---|---|---|
+| 0 / 1 | logL / entropia TCP/UDP | visão = payload de transporte (inclui o cabeçalho SOME/IP) |
+| 2 / 4 | logL / entropia SOME/IP | visão = o que vem depois dos 16 bytes do cabeçalho SOME/IP; **SD entra junto** |
+| 3 / 5 | logL / entropia SD | visão = **array de opções da mensagem SD, com o campo de comprimento**; Find e SubscribeAck, sem opções, viram zeros |
+| 6 | Hamming SD | sobre a visão SD |
+| 7 | variação do tamanho IP | campo Total Length, contra o pacote anterior |
+| 8 | variação do comprimento UDP | só quando o pacote atual e o anterior são UDP; senão, sentinela −9999 |
+| 9 | intervalo de tempo | contra o pacote anterior |
+| 10 | Hamming TCP/UDP | sobre o payload de transporte |
+| 11 | Hamming SOME/IP | sobre a visão SOME/IP |
+
+**Modelo de bytes (cols. 0 a 5).** É ajustado com a visão de **todos** os pacotes do
+`benign_traffic.pcap` (menos o primeiro), inclusive os que não têm payload. Cada visão é
+**completada com zeros, ou truncada, até L = 64 bytes**, com Laplace α = 1. O escore soma as
+64 posições do vetor completado, e a entropia é −logL/64; por isso, normalizadas, as colunas
+de logL e de entropia somam 1. Como metade dos pacotes são ACKs TCP (64 zeros) e 485 mil
+payloads SOME/IP são todos zero, o byte 0x00 domina quase todas as posições: na prática, o
+modelo mede quantos bytes diferentes de zero o pacote tem, ponderados pela raridade.
+
+**Hamming (cols. 6, 10, 11).** `popcount(int(a) XOR int(b))`, com os payloads lidos como
+inteiros big-endian: conta **bits** e alinha os payloads **pelo fim** (zeros à esquerda), sem
+truncar.
+
+**Normalização.** Min-max sobre o conjunto inteiro (treino e teste, todos os arquivos).
+
+## Montagem do dataset e divisão
+
+Os arrays são `[benigno | ataques | normais dos PCAPs de ataque]`. Os arquivos aparecem nos
+ataques na ordem DoS, MITM single, MITM multi, Fuzzy(2), Fuzzy(3), Fuzzy(1), e nos normais na
+ordem Fuzzy(2), Fuzzy(3), Fuzzy(1), DoS, MITM single, MITM multi.
+
+**A divisão "estratificada 50/50" é pacote sim, pacote não sobre o array global**: índices
+pares no treino, ímpares no teste. Todo pacote de teste tem o vizinho imediato no treino, e o
+modelo de bytes foi ajustado com o arquivo benigno inteiro, inclusive a metade de teste.
+
+## Rótulo
+
+O rótulo não é "IP de origem do atacante" nem "MAC de origem do atacante". O conjunto exato
+está em `kim_attack_idx.npy` (gerado por `scripts/kim_label_rule.py`). Em relação ao rótulo
+pelo MAC de origem:
+
+| arquivo | o Kim marca também como ataque | o Kim marca como normal, embora venha do atacante |
+|---|---|---|
+| DoS | 41.310 SD unicast das vítimas para o atacante (.2/.3/.7/.9 → .11) e algumas trocas SD com a VDE | 202 segmentos TCP do atacante |
+| MITM single | 47.078, o mesmo padrão (→ .13) | 12 |
+| MITM multi | 2.851 SD das vítimas para a VDE | **255.035: todo o TCP interno do relay** (.15 → .14 porta 30601; .14 → .10 porta 30501) |
+| Fuzzy(2) | 8.370 SD entre vítimas e .12 ou .10 | 228 |
+| Fuzzy(1), Fuzzy(3) | — | — (idêntico ao rótulo por IP) |
