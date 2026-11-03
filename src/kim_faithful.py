@@ -146,18 +146,47 @@ def _bits(a, b):
     return bin(int.from_bytes(a, "big") ^ int.from_bytes(b, "big")).count("1")
 
 
-def extract(pcap, models):
+def _flow(raw):
+    o = 14 + (raw[14] & 0x0F) * 4
+    return bytes(raw[26:34]) + bytes(raw[o:o + 4]) + bytes(raw[23:24])
+
+
+def extract(pcap, models, por_fluxo=False):
     """Features brutas (não normalizadas) de um PCAP, uma linha por pacote TCP/UDP, sem o 1º.
+
+    Com por_fluxo=True, o "pacote anterior" das colunas 6 a 11 passa a ser o do mesmo fluxo
+    (IPs, portas e protocolo), como o texto do artigo descreve, e não o da captura inteira; no
+    1º pacote de cada fluxo essas colunas valem 0 (e a 8, o sentinela). As linhas são as mesmas.
 
     Devolve (X, ts, mac_origem, ip_origem), com os dois últimos em bytes, para rotular."""
     ml4, mso, msd = models
     rows, tss, macs, ips = [], [], [], []
     prev = None
+    ult = {}
     for ts, raw in read_pcap(pcap):
         v = views(raw)
         if v is None:
             continue
         proto, ip_len, l4, so, sd = v
+        if por_fluxo:
+            fk = _flow(raw)
+            cur = (ts, proto, ip_len, l4, so, sd)
+            if prev is not None:
+                a, b, c = ml4.loglik(l4), mso.loglik(so), msd.loglik(sd)
+                q = ult.get(fk)
+                if q is None:
+                    rows.append((a, -a / L, b, c, -b / L, -c / L, 0, 0, UDP_NA, 0.0, 0, 0))
+                else:
+                    pts, pproto, pip, pl4, pso, psd = q
+                    udp = (len(l4) - len(pl4)) if (proto == 17 and pproto == 17) else UDP_NA
+                    rows.append((a, -a / L, b, c, -b / L, -c / L, _bits(sd, psd), ip_len - pip, udp,
+                                 ts - pts, _bits(l4, pl4), _bits(so, pso)))
+                tss.append(ts)
+                macs.append(bytes(raw[6:12]))
+                ips.append(bytes(raw[26:30]))
+            ult[fk] = cur
+            prev = cur
+            continue
         if prev is not None:
             pts, pproto, pip, pl4, pso, psd = prev
             a, b, c = ml4.loglik(l4), mso.loglik(so), msd.loglik(sd)

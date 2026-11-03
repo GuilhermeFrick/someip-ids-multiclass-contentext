@@ -28,7 +28,7 @@ FAMILIA = {"dos_noti_flood.pcap": 1, "fuzzy_sd_offer_rand_noti(1).pcap": 2,
            "mitm_single_attacker.pcap": 3, "mitm_multi_attacker.pcap": 4}
 PARAMS = dict(objective="multi:softprob", num_class=5, eta=0.05, max_depth=6, subsample=0.8,
               colsample_bytree=0.8, reg_lambda=1.0, gamma=0.0, min_child_weight=1,
-              tree_method="hist", seed=42, nthread=4)
+              tree_method="hist", seed=42, nthread=os.cpu_count())
 N_TREES = 1000
 
 
@@ -61,9 +61,11 @@ def split_temporal(d, frac=0.7):
     return (*c(tr), *c(te))
 
 
-def avalia(nome, Xtr, ytr, Xte, yte):
+def avalia(nome, Xtr, ytr, Xte, yte, salvar=None):
     t0 = time.time()
     bst = xgb.train(PARAMS, xgb.DMatrix(Xtr, label=ytr), N_TREES)
+    if salvar:
+        bst.save_model(salvar)
     pred = bst.predict(xgb.DMatrix(Xte)).argmax(1)
     cm = np.zeros((5, 5), np.int64)
     np.add.at(cm, (yte, pred), 1)

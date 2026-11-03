@@ -118,3 +118,33 @@ Na divisão do Kim, com o rótulo do Kim: 0,816 com 12 e 0,972 com 16. As 4 feat
 Fuzzy em todos os cenários. A confusão DoS ↔ MITM single persiste com as 12 colunas fiéis (cerca de 30%
 do DoS vira MITM single), o que não ocorria com o extrator anterior da C1, que usava o pacote anterior
 do mesmo fluxo.
+
+## Pacote anterior por fluxo e mutação de sinais
+
+**Por fluxo** (`scripts/kim_fluxo.py`, `por_fluxo=True` em `src/kim_faithful.py`): as colunas 6 a 11
+usam o pacote anterior do mesmo fluxo, como o texto do artigo descreve. Temporal 70/30, rótulo por MAC:
+
+| | anterior global | anterior por fluxo |
+|---|---|---|
+| 12 features, macro-F1 | 0,728 | 0,762 |
+| 16 features, macro-F1 | 0,906 | **0,972** (DoS 0,998; MITM single 0,994; MITM multi 0,878; FP 1,27%) |
+
+A confusão DoS ↔ MITM single vinha dos pacotes de SD que os dois injetores compartilham (Offer de
+0x1001 e SubscribeAck); o tempo e as variações dentro do fluxo os separam.
+
+**Mutação** (`scripts/kim_mutacao.py`): o benigno do Kim com um único campo alterado (tamanhos e tempos
+idênticos), modelos de bytes do benigno original, últimos 30%, FP (pacotes normais classificados
+como ataque):
+
+| perfil | pacotes alterados | 16 por fluxo | 12 por fluxo |
+|---|---|---|---|
+| original | 0 | 0,038% | 0,264% |
+| velocidade do GPS × 1,1 | 177.918 | 0,042% | 0,663% |
+| velocidade do GPS + 2 m/s | 177.918 | 0,037% | 0,290% |
+| campo A do VDE (quase sempre 0) fixo em 16 | 491.064 | 0,913% | 3,38% |
+| campo A do VDE variando (condução) | 491.064 | **10,6%** (quase tudo como MITM single) | 2,29% |
+
+O modelo tolera mudanças em sinais que já variavam no treino (a velocidade do GPS tem ~2 mil valores
+distintos) e dispara quando um sinal quase constante no treino passa a variar. Como o MITM single
+injeta notificações forjadas do mesmo serviço 0x1001, "conteúdo incomum do VDE" virou, para o modelo,
+o próprio sinal do ataque.
