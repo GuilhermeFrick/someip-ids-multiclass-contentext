@@ -148,3 +148,20 @@ O modelo tolera mudanças em sinais que já variavam no treino (a velocidade do 
 distintos) e dispara quando um sinal quase constante no treino passa a variar. Como o MITM single
 injeta notificações forjadas do mesmo serviço 0x1001, "conteúdo incomum do VDE" virou, para o modelo,
 o próprio sinal do ataque.
+
+## Teste balanceado (Tabela 3 do artigo)
+
+`scripts/kim_balanceado.py`: divisão do Kim, vetores reconstruídos, XGBoost da Tabela 2, **sem
+CTGAN**, limiar 0,36. O teste balanceado subamostra o normal até o número de ataques (831.159).
+
+| | Kim (com CTGAN) | reprodução (sem CTGAN) |
+|---|---|---|
+| desbalanceado: ROC-AUC | 0,99 | 0,987 |
+| desbalanceado: precisão / recall / F1 ponderados | 0,97 / 0,97 / 0,97 | 0,969 / 0,968 / 0,966 |
+| balanceado: ROC-AUC | 0,97 | 0,987 |
+| balanceado: F1 ponderado | — | 0,867 |
+| recall da classe de ataque (os dois testes) | — | 0,741 |
+
+O resultado principal do artigo se reproduz sem a CTGAN. O 0,97 é a média ponderada pelas
+classes, dominada pelo normal; no teste balanceado o F1 cai para 0,87, porque 26% dos ataques
+passam (recall de 0,74).
