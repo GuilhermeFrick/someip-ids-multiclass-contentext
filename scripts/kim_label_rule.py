@@ -17,6 +17,10 @@ import kim_faithful as kf  # noqa: E402
 ORDEM = ["dos_noti_flood.pcap", "mitm_single_attacker.pcap", "mitm_multi_attacker.pcap",
          "fuzzy_sd_offer_rand_noti(2).pcap", "fuzzy_sd_offer_rand_noti(3).pcap",
          "fuzzy_sd_offer_rand_noti(1).pcap"]
+# ordem dos arquivos no bloco de normais do .npy (recuperada por scripts/kim_normal_order.py)
+ORDEM_NORMAL = ["fuzzy_sd_offer_rand_noti(2).pcap", "fuzzy_sd_offer_rand_noti(3).pcap",
+                "fuzzy_sd_offer_rand_noti(1).pcap", "dos_noti_flood.pcap",
+                "mitm_single_attacker.pcap", "mitm_multi_attacker.pcap"]
 
 
 def meta(pcap):

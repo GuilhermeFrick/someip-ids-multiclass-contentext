@@ -77,3 +77,26 @@ pelo MAC de origem:
 | MITM multi | 2.851 SD das vítimas para a VDE | **255.035: todo o TCP interno do relay** (.15 → .14 porta 30601; .14 → .10 porta 30501) |
 | Fuzzy(2) | 8.370 SD entre vítimas e .12 ou .10 | 228 |
 | Fuzzy(1), Fuzzy(3) | — | — (idêntico ao rótulo por IP) |
+
+## Reprodução com o extrator fiel
+
+Rótulo do Kim, XGBoost com os hiperparâmetros da Tabela 2. Os JSON saem em `--out`
+(`kim_experiments.json`, `kim_multiclass.json`).
+
+**Binário** (`scripts/kim_experiments.py`, limiar 0,36):
+
+| divisão | ROC-AUC | PR-AUC | F1 ataque | recall | FP |
+|---|---|---|---|---|---|
+| do Kim (par/ímpar), vetores reconstruídos | 0,987 | 0,932 | 0,845 | 0,74 | 0,18% |
+| temporal 70/30 por arquivo | 0,985 | 0,922 | 0,820 | 0,76 | 1,20% |
+| temporal, modelo de bytes ajustado só no treino | 0,984 | 0,919 | | | 1,35% |
+
+**Multiclasse, 5 classes** (`scripts/kim_multiclass.py`, família pelo arquivo):
+
+| divisão | macro-F1 | FP | F1 DoS | F1 Fuzzy | F1 MITM single | F1 MITM multi |
+|---|---|---|---|---|---|---|
+| do Kim (par/ímpar) | 0,816 | 0,07% | 0,750 | 0,515 | 0,844 | 0,987 |
+| temporal 70/30 | 0,783 | 0,31% | 0,622 | 0,551 | 0,778 | 0,984 |
+
+Com as 12 features, 64% do Fuzzy é classificado como normal, e DoS e MITM single se confundem
+entre si (na divisão temporal, 35% do DoS vira MITM single).
