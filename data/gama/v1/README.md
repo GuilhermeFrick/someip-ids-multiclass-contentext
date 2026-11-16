@@ -120,29 +120,46 @@ inclui esses quadros, e a de β não.
 ## Composição
 
 Gerado em 15/11/2026 (commit de origem `c8de8f7`), na máquina do CARLA (Tesla T4, 8 vCPU). Cada
-captura dura 1.500 s e rodou a 1,0× do tempo real (1.500 a 1.521 s de relógio). Na coluna de β,
-os números são os de quadros de ataque do dataset do Kim, para comparação.
+captura dura 1.500 s e rodou a 1,0× do tempo real (1.500 a 1.521 s de relógio).
 
-| Captura | Quadros | Benignos | Ataque | % ataque | Ataque em β | % em β |
-|---|---|---|---|---|---|---|
-| benign | 2.499.419 | 2.499.419 | 0 | 0,0% | 0 | 0,0% |
-| dos | 2.025.455 | 1.643.926 | 381.529 | 18,8% | 306.944 | 16,5% |
-| fuzzy1 | 2.522.374 | 2.517.104 | 5.270 | 0,2% | 5.243 | 0,2% |
-| fuzzy2 | 1.404.666 | 1.357.005 | 47.661 | 3,4% | 43.213 | 3,3% |
-| fuzzy3 | 2.498.716 | 1.892.397 | 606.319 | 24,3% | 511.596 | 23,0% |
-| mitm_single | 2.488.930 | 1.876.712 | 612.218 | 24,6% | 360.510 | 17,7% |
-| mitm_multi | 2.666.765 | 2.051.220 | 615.545 | 23,1% | 427.493 | 17,7% |
-| **Total** | **16.106.325** | **13.837.783** | **2.268.542** | **14,1%** | **1.654.999** | **11,6%** |
+Para comparar com β, a contagem é a mesma da Tabela V do artigo: só os pacotes que o extrator
+processa (IPv4 com TCP ou UDP; ficam de fora ARP e IGMP, por exemplo). Por isso o total aqui é
+menor que o de quadros do `scn.pcap` (16.106.325) e do `RESUMO.txt`. Ataque de γ pelo rótulo por
+MAC; em β, as duas regras.
+
+| Captura | Pacotes | Benignos | Ataque | % ataque | β: ataque (IP) | β: ataque (MAC) |
+|---|---:|---:|---:|---:|---:|---:|
+| benign | 2.498.440 | 2.498.440 | 0 | 0,0% | 0 | 0 |
+| dos | 1.955.856 | 1.642.598 | 313.258 | 16,0% | 306.944 | 306.944 |
+| fuzzy1 | 2.521.310 | 2.516.046 | 5.264 | 0,2% | 5.243 | 5.243 |
+| fuzzy2 | 1.403.346 | 1.355.695 | 47.651 | 3,4% | 43.213 | 43.213 |
+| fuzzy3 | 2.497.677 | 1.891.549 | 606.128 | 24,3% | 511.596 | 511.596 |
+| mitm_single | 2.352.507 | 1.875.582 | 476.925 | 20,3% | 360.510 | 360.510 |
+| mitm_multi | 2.665.452 | 2.050.273 | 615.179 | 23,1% | 427.493 | 590.681 |
+| **Total** | **15.894.588** | **13.830.183** | **2.064.405** | **13,0%** | **1.654.999** | **1.818.187** |
 
 Leitura da comparação:
 
-- **Fuzzy 1 e Fuzzy 2** batem com β quase quadro a quadro (5.270 contra 5.243; 47.661 contra 43.213).
-- **DoS e Fuzzy 3** ficam um pouco acima. Em β a taxa da VDE, que o atacante do Fuzzy 3 imita, cai
-  ao longo do arquivo; na bancada ela é constante.
-- **MITM multi** fica acima em parte por causa do rótulo: o rótulo por MAC conta como ataque os
-  StopOffer forjados com o IP da VDE, que o rótulo por IP de β conta como normais.
-- **MITM single** fica 70% acima de β, e a causa **ainda não foi investigada**. Antes de usar a
-  classe em conclusões, é preciso comparar a taxa de cada tipo de mensagem do atacante com a de β.
+- **DoS, Fuzzy 1 e Fuzzy 2** batem com β (+2%, 0% e +10% de pacotes de ataque).
+- **MITM multi** bate quando os dois usam o rótulo por MAC (+4%). Pelo rótulo por IP de β, os
+  StopOffer forjados com o IP da VDE contam como normais, e a classe parece 30% menor.
+- **Fuzzy 3** fica 18% acima: em β, a taxa da VDE, que o atacante imita, cai ao longo do arquivo;
+  na bancada ela é constante.
+- **MITM single** fica 32% acima de β, e a causa **ainda não foi investigada**. A assinatura de SD
+  bate (98,7 ofertas de 0x1001 por segundo contra 97,5; StopOffer a cada 2,50 s nos dois), então a
+  diferença está em outro tipo de mensagem do atacante. Antes de usar a classe em conclusões, é
+  preciso compará-las uma a uma.
+
+Assinaturas medidas nos dois datasets (a mesma contagem em β e γ):
+
+| Assinatura | β | γ |
+|---|---:|---:|
+| TCP nos quadros IP do benigno | 99,0% | 99,1% |
+| DoS: ofertas falsas de 0x1001 por segundo | 49,4 | 49,7 |
+| MITM single: ofertas de 0x1001 por segundo | 97,5 | 98,7 |
+| MITM single: intervalo mediano entre StopOffer | 2,50 s | 2,50 s |
+| MITM multi: StopOffer com o IP da VDE forjado | 163.188 | 166.691 |
+| MITM multi: quadros do retransmissor / do impostor | 60,5% / 39,5% | 61,4% / 38,6% |
 
 Verificações feitas sobre a geração:
 
