@@ -1,0 +1,4 @@
+[label-by-mac] 2488930 quadros -> /home/ubuntu/gama/v1/mitm_single/scn.labels
+  normal        1876712 (75.40%)
+  mitm_single    612218 (24.60%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

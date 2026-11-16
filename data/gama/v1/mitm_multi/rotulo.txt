@@ -1,0 +1,5 @@
+[label-by-mac] 2666765 quadros -> /home/ubuntu/gama/v1/mitm_multi/scn.labels
+  normal        2051220 (76.92%)
+  mitm_multi     615545 (23.08%)
+  onde a regra por IP do dataset rotularia diferente:
+      166691  ataque pelo MAC, normal pelo IP (origem 172.28.0.10)

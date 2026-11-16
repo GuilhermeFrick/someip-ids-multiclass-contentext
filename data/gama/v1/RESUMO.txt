@@ -1,0 +1,7 @@
+benign none semente=101 quadros=2499419 ataque=0 rc=0 | t= 1500 s simulado (1500 s reais)  v=0.0 m/s  datagramas 4950033
+dos dos semente=102 quadros=2025455 ataque=381529 rc=0 | t= 1500 s simulado (1501 s reais)  v=0.0 m/s  datagramas 4950033
+fuzzy1 fuzzy semente=103 quadros=2522374 ataque=5270 rc=0 | t= 1500 s simulado (1500 s reais)  v=0.0 m/s  datagramas 4950033
+fuzzy2 fuzzy2 semente=104 quadros=1404666 ataque=47661 rc=0 | t= 1500 s simulado (1500 s reais)  v=0.0 m/s  datagramas 4950033
+fuzzy3 fuzzy3 semente=105 quadros=2498716 ataque=606319 rc=0 | t= 1500 s simulado (1500 s reais)  v=5.7 m/s  datagramas 4950033
+mitm_single mitm_single semente=106 quadros=2488930 ataque=612218 rc=0 | t= 1500 s simulado (1521 s reais)  v=0.0 m/s  datagramas 4950033
+mitm_multi mitm_multi semente=107 quadros=2666765 ataque=615545 rc=0 | t= 1500 s simulado (1500 s reais)  v=0.0 m/s  datagramas 4950033

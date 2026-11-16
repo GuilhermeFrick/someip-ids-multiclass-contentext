@@ -1,0 +1,4 @@
+[label-by-mac] 2498716 quadros -> /home/ubuntu/gama/v1/fuzzy3/scn.labels
+  normal        1892397 (75.73%)
+  fuzzy          606319 (24.27%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

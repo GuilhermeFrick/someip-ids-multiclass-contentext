@@ -1,0 +1,6 @@
+dataset gama, gerado em 2026-11-15T21:35:45Z por platform/carla-live/gera_gama.sh
+maquina: ip-172-31-66-148, 8 vCPU, GPU: Tesla T4
+codigo: GIT_REV=c8de8f7 (commit local de origem); md5 das fontes abaixo
+DUR=1500 RENDER=0 FUZZ2_LAG=0.12 MAPA=Town10HD_Opt imagem=someip-base:3.5.6 (vsomeip 3.5.6)
+matriz: platform/comm_matrix_kim.yaml md5 71b10d94b3f0764108d5c84398aaa053
+md5 do conjunto das fontes: 71d82339a6fd325ba79b73a18d6a144c  -

@@ -1,0 +1,4 @@
+[label-by-mac] 2025455 quadros -> /home/ubuntu/gama/v1/dos/scn.labels
+  normal        1643926 (81.16%)
+  dos            381529 (18.84%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

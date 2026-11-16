@@ -1,0 +1,12 @@
+T0_EPOCH=1794787923.669318317
+   0.334  sobe injetor mitm_relay (172.28.0.14, MAC 02:42:ac:1c:00:0e, ctrl 172.29.0.14:7000)
+   1.680  sobe node_2 (172.28.0.2, ao vivo em 172.29.0.2:7100)
+   2.019  sobe node_3 (172.28.0.3, ao vivo em 172.29.0.3:7100)
+   2.355  sobe node_6 (172.28.0.6, ao vivo em 172.29.0.6:7100)
+   2.693  sobe node_7 (172.28.0.7, ao vivo em 172.29.0.7:7100)
+   3.025  sobe node_8 (172.28.0.8, ao vivo em 172.29.0.8:7100)
+   3.350  sobe node_9 (172.28.0.9, ao vivo em 172.29.0.9:7100)
+   5.711  sobe node_4 (172.28.0.4, ao vivo em 172.29.0.4:7100)
+   6.050  sobe node_5 (172.28.0.5, ao vivo em 172.29.0.5:7100)
+   6.419  sobe node_10 (172.28.0.10, ao vivo em 172.29.0.10:7100)
+   9.799  sobe injetor mitm_impostor (172.28.0.15, MAC 02:42:ac:1c:00:0f, ctrl 172.29.0.15:7000)
