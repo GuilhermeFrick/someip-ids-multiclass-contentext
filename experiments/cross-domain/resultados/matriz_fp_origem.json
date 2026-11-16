@@ -1,0 +1,144 @@
+{
+ "kim/mitm_multi": {
+  ".2": {
+   "normais": 57612,
+   "fp": 39619,
+   "taxa": 0.687686593070888,
+   "prev": {
+    "fuzzy": 2,
+    "mitm_single": 458,
+    "mitm_multi": 39159
+   }
+  },
+  ".3": {
+   "normais": 24987,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".4": {
+   "normais": 62854,
+   "fp": 54,
+   "taxa": 0.0008591338657841983,
+   "prev": {
+    "fuzzy": 12,
+    "mitm_single": 42
+   }
+  },
+  ".5": {
+   "normais": 123199,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".6": {
+   "normais": 55166,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".7": {
+   "normais": 36481,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".8": {
+   "normais": 33981,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".9": {
+   "normais": 57237,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".10": {
+   "normais": 147465,
+   "fp": 70,
+   "taxa": 0.0004746889092326993,
+   "prev": {
+    "dos": 1,
+    "mitm_single": 1,
+    "mitm_multi": 68
+   }
+  }
+ },
+ "gama/benign": {
+  ".2": {
+   "normais": 108298,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".3": {
+   "normais": 30047,
+   "fp": 225,
+   "taxa": 0.007488268379538723,
+   "prev": {
+    "mitm_multi": 225
+   }
+  },
+  ".4": {
+   "normais": 54960,
+   "fp": 3435,
+   "taxa": 0.0625,
+   "prev": {
+    "fuzzy": 236,
+    "mitm_single": 3168,
+    "mitm_multi": 31
+   }
+  },
+  ".5": {
+   "normais": 138226,
+   "fp": 3122,
+   "taxa": 0.022586199412556247,
+   "prev": {
+    "fuzzy": 2882,
+    "mitm_single": 142,
+    "mitm_multi": 98
+   }
+  },
+  ".6": {
+   "normais": 48273,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".7": {
+   "normais": 88504,
+   "fp": 225,
+   "taxa": 0.0025422579770405856,
+   "prev": {
+    "mitm_multi": 225
+   }
+  },
+  ".8": {
+   "normais": 44802,
+   "fp": 225,
+   "taxa": 0.0050220972278023305,
+   "prev": {
+    "mitm_multi": 225
+   }
+  },
+  ".9": {
+   "normais": 54493,
+   "fp": 0,
+   "taxa": 0.0,
+   "prev": {}
+  },
+  ".10": {
+   "normais": 181929,
+   "fp": 126897,
+   "taxa": 0.6975083686493082,
+   "prev": {
+    "dos": 1002,
+    "fuzzy": 55025,
+    "mitm_single": 70838,
+    "mitm_multi": 32
+   }
+  }
+ }
+}

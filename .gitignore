@@ -15,3 +15,8 @@ Thumbs.db
 venv/
 features.npz
 *.log
+artefatos-treino/sweep/
+# avaliação entre domínios: saídas de execução e o γ descomprimido (o versionado é o .gz, via LFS)
+experiments/cross-domain/work/
+data/gama/v1/*/scn.labels
+data/gama/v1/*/viagem.csv
