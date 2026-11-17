@@ -1,0 +1,4 @@
+[label-by-mac] 2498306 quadros -> /home/ubuntu/parado/v1/fuzzy3/scn.labels
+  normal        1892085 (75.73%)
+  fuzzy          606221 (24.27%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

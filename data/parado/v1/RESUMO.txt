@@ -1,0 +1,7 @@
+benign none slot=0 quadros=2498673 ataque=0 rc=0
+fuzzy3 fuzzy3 slot=2 quadros=2498306 ataque=606221 rc=0
+mitm_multi mitm_multi slot=3 quadros=2580091 ataque=604931 rc=0
+dos dos slot=1 quadros=2033554 ataque=386291 rc=0
+fuzzy2 fuzzy2 slot=1 quadros=1404604 ataque=47599 rc=0
+fuzzy1 fuzzy slot=0 quadros=2521260 ataque=5270 rc=0
+mitm_single mitm_single slot=2 quadros=2536999 ataque=615073 rc=0

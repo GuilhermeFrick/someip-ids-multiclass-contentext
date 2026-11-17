@@ -1,0 +1,4 @@
+[label-by-mac] 2536999 quadros -> /home/ubuntu/parado/v1/mitm_single/scn.labels
+  normal        1921926 (75.76%)
+  mitm_single    615073 (24.24%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

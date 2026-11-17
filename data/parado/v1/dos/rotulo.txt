@@ -1,0 +1,4 @@
+[label-by-mac] 2033554 quadros -> /home/ubuntu/parado/v1/dos/scn.labels
+  normal        1647263 (81.00%)
+  dos            386291 (19.00%)
+  a regra por IP do dataset daria o mesmo rótulo em todos os quadros

@@ -1,0 +1,5 @@
+[label-by-mac] 2580091 quadros -> /home/ubuntu/parado/v1/mitm_multi/scn.labels
+  normal        1975160 (76.55%)
+  mitm_multi     604931 (23.45%)
+  onde a regra por IP do dataset rotularia diferente:
+      166666  ataque pelo MAC, normal pelo IP (origem 172.34.0.10)
