@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Extração única de todas as features (C1, SD, comportamento, eco, novas) e metadados.
+(Tarefas com "c1": true no manifesto guardam só as 16 colunas da C1.)
 
 Um PCAP -> <out>.X.npy (float32, N x len(COLS)) e <out>.meta.npz. Mesmo conjunto de pacotes da
 C1 (someip.parse(raw) != None), mesma ordem. As features da C1 usam o modelo de bytes do Kim
@@ -55,16 +56,26 @@ def ip_u32(s):
 
 def uma(t):
     out = t["out"]
-    if os.path.exists(out + ".meta.npz") and not t.get("forca"):
+    if os.path.exists(out + (".Xk.npy" if t.get("so_xk") else ".meta.npz")) and not t.get("forca"):
         return t["name"], "cache"
     t0 = time.time()
     bmk = fs.memoriza(carrega_bm(os.path.join(K.C1_ART, "bytemodels.npz")))
     bmb = fs.memoriza(carrega_bm(os.path.join(K.ARTEFATOS, "bm-bancada.npz")))
     st = fs.classe_rapida(extract_ext)()
     sds, cps, ecs, nvs = SdStreamer(), CompStreamer(), EcoStreamer(), NovasStreamer()
+    # "c1": só as 16 colunas da C1 (a matriz não usa as outras; economiza ~60% do disco)
+    so_c1 = bool(t.get("c1"))
+    ncol = len(C1) if so_c1 else len(COLS)
     macs = {k.lower(): v for k, v in t.get("macs", {}).items()}
     atk_ip, benign_ips = t.get("ip_atk_class", 0), set(t.get("benign_ips", []))
-    blocos, X = [], []
+    blocos, blocos_k, X = [], [], []
+    mm = np.load(os.path.join(K.C1_ART, "minmax.npy")).astype(np.float64)
+    kmin, krng = mm[0], np.where(mm[1] > mm[0], mm[1] - mm[0], 1.0)
+
+    def guarda(linhas):
+        a = np.asarray(linhas, dtype=np.float64).reshape(-1, ncol)
+        blocos.append(a.astype(np.float32))
+        blocos_k.append(((a[:, :len(C1)] - kmin) / krng).astype(np.float32))
     M = {k: [] for k in ("y_mac", "y_ip", "ack", "ts", "src", "mac", "is_sd", "msg_type", "svc",
                          "method", "proto")}
     n = 0
@@ -82,8 +93,11 @@ def uma(t):
              bmb["someip"].cross_entropy(p.pl_someip) if p.pl_someip else 0.0,
              bmb["sd"].cross_entropy(p.pl_sd) if p.pl_sd else 0.0,
              bmb["l4"].cross_entropy(p.pl_l4) if p.pl_l4 else 0.0)
-        X.append(tuple(f) + g + sds.step(raw, p.src, p.dst, p.service_id, p.ts) + cps.step(p)
-                 + ecs.step(p) + nvs.step(p, raw))
+        if so_c1:
+            X.append(tuple(f))
+        else:
+            X.append(tuple(f) + g + sds.step(raw, p.src, p.dst, p.service_id, p.ts) + cps.step(p)
+                     + ecs.step(p) + nvs.step(p, raw))
         mac = bytes(raw[6:12])
         M["y_mac"].append(macs.get(mac.hex(":"), 0))
         M["y_ip"].append(atk_ip if (atk_ip and p.src not in benign_ips) else 0)
@@ -97,17 +111,23 @@ def uma(t):
         M["method"].append(p.method_id)
         M["proto"].append(p.proto)
         if len(X) == 200000:
-            blocos.append(np.asarray(X, dtype=np.float32))
+            guarda(X)
             X = []
     if X or not blocos:
-        blocos.append(np.asarray(X, dtype=np.float32).reshape(-1, len(COLS)))
+        guarda(X)
     Xa = np.concatenate(blocos)
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    np.save(out + ".X.npy", Xa)
+    if not t.get("so_xk"):   # "so_xk": guarda só o .Xk.npy (as 16 normalizadas como no publicado)
+        np.save(out + ".X.npy", Xa)
+    # as 16 da C1 normalizadas com o min-max PUBLICADO, em precisão dupla e só então em float32,
+    # como em results/features.npz: normalizar a partir do float32 muda o último dígito de algumas
+    # colunas, e o modelo publicado tem cortes exatamente sobre esses valores (muda ~4% do DoS)
+    np.save(out + ".Xk.npy", np.concatenate(blocos_k))
     tipos = {"y_mac": np.int8, "y_ip": np.int8, "ack": bool, "ts": np.float64, "src": np.uint32,
              "mac": np.uint64, "is_sd": bool, "msg_type": np.int16, "svc": np.int32, "method": np.int32,
              "proto": np.int8}
-    np.savez(out + ".meta.npz", **{k: np.asarray(v, dtype=tipos[k]) for k, v in M.items()})
+    if not t.get("so_xk"):
+        np.savez(out + ".meta.npz", **{k: np.asarray(v, dtype=tipos[k]) for k, v in M.items()})
     return t["name"], "%d pacotes, %.0f s" % (len(Xa), time.time() - t0)
 
 

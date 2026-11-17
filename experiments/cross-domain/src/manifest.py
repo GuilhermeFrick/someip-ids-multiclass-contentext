@@ -58,6 +58,15 @@ if os.path.isdir(GAMA):
             T.append({"name": "gama/" + d, "dom": "gama", "pcap": pc,
                       "macs": macs_de(os.path.join(GAMA, d, "injector.mac")),
                       "out": os.path.join(BASE, "feats", "gama", d)})
+# domínio parado (γ-parado), mesma estrutura do gama; só as 16 colunas da C1 ("c1": True)
+PARADO = K.PARADO_DIR
+if os.path.isdir(PARADO):
+    for d in sorted(os.listdir(PARADO)):
+        pc = os.path.join(PARADO, d, "scn.pcap")
+        if os.path.exists(pc):
+            T.append({"name": "parado/" + d, "dom": "parado", "pcap": pc, "c1": True,
+                      "macs": macs_de(os.path.join(PARADO, d, "injector.mac")),
+                      "out": os.path.join(BASE, "feats", "parado", d)})
 os.makedirs(os.path.join(BASE, "feats"), exist_ok=True)
 json.dump(T, open(os.path.join(BASE, "feats", "manifest.json"), "w"), indent=1)
 print(len(T), "tarefas", file=sys.stderr)

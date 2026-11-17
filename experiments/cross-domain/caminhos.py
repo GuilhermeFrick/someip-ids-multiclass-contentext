@@ -10,6 +10,8 @@ EXP = os.path.dirname(os.path.abspath(__file__))                       # experim
 REPO = os.environ.get("C1_REPO", os.path.dirname(os.path.dirname(EXP)))  # raiz do repositório
 KIM_DIR = os.environ.get("KIM_DIR", os.path.join(REPO, "data", "pcap"))
 GAMA_DIR = os.environ.get("GAMA_DIR", os.path.join(REPO, "data", "gama", "v1"))
+# γ-parado: a mesma bancada do γ, com o conteúdo do benigno do Kim (veículo parado). Opcional.
+PARADO_DIR = os.environ.get("PARADO_DIR", os.path.join(REPO, "data", "parado", "v1"))
 WORK = os.environ.get("WORK_DIR", os.path.join(EXP, "work"))           # features, modelos, saídas
 # Opcionais, usados só na exploração de features (não na matriz): o domínio "bancada" (viagens
 # sintéticas da bancada) e as mutações de sinal do benigno do Kim. Vazios = ignorados.

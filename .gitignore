@@ -20,3 +20,4 @@ artefatos-treino/sweep/
 experiments/cross-domain/work/
 data/gama/v1/*/scn.labels
 data/gama/v1/*/viagem.csv
+data/parado/v1/*/scn.labels

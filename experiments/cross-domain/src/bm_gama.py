@@ -7,7 +7,8 @@
 2. Para cada PCAP pedido, grava <out>.bmG.npy (float32, N x 6), nas mesmas linhas de extrai.py.
 3. Para gama, confere o rótulo por MAC (y_mac de extrai.py) contra scn.labels (índice do quadro).
 
-Uso: bm_gama.py --manifest feats/manifest.json --jobs 4 [--so kim/,gama/,bancada/]
+Uso: bm_gama.py --manifest feats/manifest.json --jobs 4 [--so kim/,gama/,bancada/] [--dom gama|parado]
+Com --dom parado, o mesmo para o γ-parado: feats/bm-parado.npz e <out>.bmP.npy.
 """
 import os as _os, sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
@@ -31,6 +32,8 @@ import fast_streamer as fs  # noqa: E402
 from pcapio import ler  # noqa: E402
 from extrai import carrega_bm  # noqa: E402
 
+SUFIXO = {"gama": ".bmG.npy", "parado": ".bmP.npy"}
+DOM = "gama"
 BMG = os.path.join(BASE, "feats", "bm-gama.npz")
 
 
@@ -59,14 +62,14 @@ def ajusta(pcap):
 
 
 def uma(t):
-    out = t["out"] + ".bmG.npy"
+    out = t["out"] + SUFIXO[DOM]
     if os.path.exists(out):
         return t["name"], "cache"
     t0 = time.time()
     bm = fs.memoriza(carrega_bm(BMG))
     rot = None
     lab = os.path.join(os.path.dirname(t["pcap"]), "scn.labels")
-    if t["dom"] == "gama" and os.path.exists(lab):
+    if t["dom"] in SUFIXO and os.path.exists(lab):
         rot = {}
         for linha in open(lab):
             a = linha.split()
@@ -101,11 +104,15 @@ def main():
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--so", default="kim/,gama/,bancada/")
+    ap.add_argument("--dom", default="gama", choices=sorted(SUFIXO),
+                    help="domínio cujo benigno ajusta o modelo de bytes (gama: .bmG.npy; parado: .bmP.npy)")
     a = ap.parse_args()
+    global DOM, BMG
+    DOM, BMG = a.dom, os.path.join(BASE, "feats", "bm-%s.npz" % a.dom)
     T = json.load(open(a.manifest))
     if not os.path.exists(BMG):
-        g = [t for t in T if t["name"] == "gama/benign"][0]
-        print("modelo de bytes gama:", ajusta(g["pcap"]), flush=True)
+        g = [t for t in T if t["name"] == DOM + "/benign"][0]
+        print("modelo de bytes %s:" % DOM, ajusta(g["pcap"]), flush=True)
     sel = a.so.split(",")
     T = [t for t in T if any(t["name"].startswith(s) for s in sel)]
     T.sort(key=lambda t: -os.path.getsize(t["pcap"]))

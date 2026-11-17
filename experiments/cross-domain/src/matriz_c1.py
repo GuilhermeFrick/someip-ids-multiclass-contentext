@@ -10,6 +10,9 @@ Cenários (teste sempre nos 30% finais de cada captura, pipeline.temporal_split)
                    min-max do treino de gama, XGBClassifier com os hiperparâmetros do model_16.json,
                    treino nos 70% iniciais de cada captura.
   4. gama->beta    o modelo do cenário 3 aplicado, sem reajuste, aos 30% finais do Kim.
+Se houver features do γ-parado (feats/parado/, PARADO_DIR), a matriz fica 3 x 3: o mesmo procedimento
+com o modelo de bytes do γ-parado (feats/bm-parado.npz, colunas .bmP.npy), e cada modelo testado nos
+três domínios (beta_parado, parado_parado, parado_beta, gama_parado, parado_gama).
 
 Rótulos: beta com o rótulo da C1 (regra por IP, labeler.py) e também por MAC; gama por MAC (scn.labels).
 Saída: matriz_c1.json e matriz_c1.md.
@@ -42,14 +45,33 @@ def norm(X, xmin, xmax):
     return ((X.astype(np.float64) - xmin) / rng).astype(np.float32)
 
 
+SUFIXO = {"gama": ".bmG.npy", "parado": ".bmP.npy"}   # 6 colunas de modelo de bytes por domínio gerado
+PFX = {"kim": "beta", "gama": "gama", "parado": "parado"}
+SIGLA = {"kim": "β", "gama": "γ", "parado": "γ-parado"}
+
+
 def carrega(dom, nome, bm):
-    """16 features cruas (bm='kim': modelo de bytes do Kim; 'gama': as 6 de bytes trocadas por bmG)."""
+    """16 features cruas; bm = domínio do modelo de bytes ('kim': o publicado; 'gama'/'parado': as 6
+    colunas de bytes trocadas pelas do modelo daquele domínio)."""
     X = np.load(os.path.join(BASE, "feats", dom, nome + ".X.npy"), mmap_mode="r")
     A = np.array(X[:, :16], dtype=np.float32)
-    if bm == "gama":
-        A[:, BMIDX] = np.load(os.path.join(BASE, "feats", dom, nome + ".bmG.npy"))
+    if bm in SUFIXO:
+        A[:, BMIDX] = np.load(os.path.join(BASE, "feats", dom, nome + SUFIXO[bm]))
     m = np.load(os.path.join(BASE, "feats", dom, nome + ".meta.npz"))
     return A, m["y_mac"].astype(np.int64), m["y_ip"].astype(np.int64)
+
+
+XK = os.environ.get("XK_WORK", BASE)   # onde estão os .Xk.npy (extrai.py)
+
+
+def carrega_k(dom, nome, kmin, kmax):
+    """As 16 normalizadas com o min-max publicado, em precisão dupla e só então float32 (.Xk.npy),
+    exatamente como results/features.npz; sem o arquivo, normaliza a partir do float32 (pode mudar
+    o último dígito de algumas colunas e, com o modelo publicado, a classe de alguns pacotes)."""
+    p = os.path.join(XK, "feats", dom, nome + ".Xk.npy")
+    if os.path.exists(p):
+        return np.load(p)
+    return norm(carrega(dom, nome, "kim")[0], kmin, kmax)
 
 
 def mede(pred_por, y_por, nomes):
@@ -104,13 +126,13 @@ def main():
         # normalizada com o minmax.npy publicado; é o mesmo cálculo do FeatureStreamer da C1
         partes, ys, counts = [], [], []
         for n in ORDEM:
-            A, _, yi = carrega("kim", n, "kim")
-            partes.append(norm(A, kmin, kmax))
+            yi = np.load(os.path.join(BASE, "feats", "kim", n + ".meta.npz"))["y_ip"].astype(np.int64)
+            partes.append(carrega_k("kim", n, kmin, kmax))
             ys.append(yi)
-            counts.append(len(A))
+            counts.append(len(yi))
         Xn, yip = np.concatenate(partes), np.concatenate(ys)
         del partes, ys
-        res["notas"]["beta_beta_fonte"] = "extrai.py + minmax.npy publicado"
+        res["notas"]["beta_beta_fonte"] = "extrai.py (.Xk.npy: min-max publicado em precisão dupla)"
     ini = np.concatenate([[0], np.cumsum(counts)])
     kim_te = {}
     for i, n in enumerate(ORDEM):
@@ -124,54 +146,61 @@ def main():
                         "rotulo_mac": mede([pk[n] for n in ORDEM], [kim_te[n]["y_mac"] for n in ORDEM], ORDEM)}
     print("beta->beta (IP): macro-F1 %.4f" % res["beta_beta"]["rotulo_ip"]["macro_f1"],
           {c: round(v, 4) for c, v in res["beta_beta"]["rotulo_ip"]["f1"].items()}, flush=True)
-    # ---------- 2. beta -> gama ----------
-    g = {n: carrega("gama", n, "kim") for n in ORDEM}
-    gte = {}
-    for n in ORDEM:
-        A, ym, _ = g[n]
-        c = int(len(A) * 0.7)
-        gte[n] = (A[c:], ym[c:])
-    pg = {n: b16.predict(xgb.DMatrix(norm(gte[n][0], kmin, kmax))).argmax(1) for n in ORDEM}
-    res["beta_gama"] = mede([pg[n] for n in ORDEM], [gte[n][1] for n in ORDEM], ORDEM)
-    print("beta->gama: macro-F1 %.4f FP %.4f" % (res["beta_gama"]["macro_f1"], res["beta_gama"]["fp_total"]), flush=True)
-    del g, gte
-    # ---------- 3. gama -> gama ----------
-    g = {n: carrega("gama", n, "gama") for n in ORDEM}
-    tr = [(A[:int(len(A) * 0.7)], ym[:int(len(A) * 0.7)]) for A, ym, _ in (g[n] for n in ORDEM)]
-    te = {n: (g[n][0][int(len(g[n][0]) * 0.7):], g[n][1][int(len(g[n][0]) * 0.7):]) for n in ORDEM}
-    Xtr = np.concatenate([t[0] for t in tr])
-    ytr = np.concatenate([t[1] for t in tr])
-    del tr, g
-    gmin, gmax = Xtr.min(0).astype(np.float64), Xtr.max(0).astype(np.float64)
-    par = pipeline.model_params(n_jobs=4)
+    gerados = [d for d in ("gama", "parado") if os.path.isdir(os.path.join(BASE, "feats", d))
+               and all(os.path.exists(os.path.join(BASE, "feats", d, n + ".meta.npz")) for n in ORDEM)]
+    res["notas"]["dominios"] = ["kim"] + gerados
+    # ---------- 2. beta -> cada domínio gerado (o modelo publicado, sem reajuste) ----------
+    for t in gerados:
+        pg, yg = [], []
+        for n in ORDEM:
+            A = carrega_k(t, n, kmin, kmax)
+            ym = np.load(os.path.join(BASE, "feats", t, n + ".meta.npz"))["y_mac"].astype(np.int64)
+            c = int(len(A) * 0.7)
+            pg.append(b16.predict(xgb.DMatrix(A[c:])).argmax(1))
+            yg.append(ym[c:])
+        res["beta_" + PFX[t]] = mede(pg, yg, ORDEM)
+        print("beta->%s: macro-F1 %.4f FP %.4f" % (t, res["beta_" + PFX[t]]["macro_f1"],
+                                                    res["beta_" + PFX[t]]["fp_total"]), flush=True)
+    # ---------- 3. treino em cada domínio gerado, teste em todos ----------
+    par = pipeline.model_params(n_jobs=int(os.environ.get("NTHREAD", "4")))
     par.update(n_estimators=hip["n_estimators"], max_depth=hip["max_depth"], learning_rate=hip["learning_rate"],
                max_bin=hip["max_bin"])
-    res["notas"]["parametros_treino_gama"] = {k: v for k, v in par.items()}
-    clf = xgb.XGBClassifier(**par)
-    clf.fit(norm(Xtr, gmin, gmax), ytr)
-    del Xtr, ytr
-    clf.save_model(os.path.join(BASE, "results", "model_16_gama.json"))
-    np.save(os.path.join(BASE, "results", "minmax_gama.npy"), np.vstack([gmin, gmax]))
-    pgg = {n: clf.predict(norm(te[n][0], gmin, gmax)) for n in ORDEM}
-    res["gama_gama"] = mede([pgg[n] for n in ORDEM], [te[n][1] for n in ORDEM], ORDEM)
-    print("gama->gama: macro-F1 %.4f FP %.4f" % (res["gama_gama"]["macro_f1"], res["gama_gama"]["fp_total"]), flush=True)
-    del te
-    # ---------- 4. gama -> beta ----------
-    pgb, ybi, ybm = {}, {}, {}
-    for n in ORDEM:
-        A, ym, yi = carrega("kim", n, "gama")
-        c = int(len(A) * 0.7)
-        pgb[n] = clf.predict(norm(A[c:], gmin, gmax))
-        ybi[n], ybm[n] = yi[c:], ym[c:]
-    res["gama_beta"] = {"rotulo_ip": mede([pgb[n] for n in ORDEM], [ybi[n] for n in ORDEM], ORDEM),
-                        "rotulo_mac": mede([pgb[n] for n in ORDEM], [ybm[n] for n in ORDEM], ORDEM)}
-    print("gama->beta (IP): macro-F1 %.4f FP %.4f" % (res["gama_beta"]["rotulo_ip"]["macro_f1"],
-                                                     res["gama_beta"]["rotulo_ip"]["fp_total"]), flush=True)
+    res["notas"]["parametros_treino_gerados"] = {k: v for k, v in par.items()}
+    for d in gerados:
+        g = {n: carrega(d, n, d) for n in ORDEM}
+        Xtr = np.concatenate([g[n][0][:int(len(g[n][0]) * 0.7)] for n in ORDEM])
+        ytr = np.concatenate([g[n][1][:int(len(g[n][0]) * 0.7)] for n in ORDEM])
+        del g
+        dmin, dmax = Xtr.min(0).astype(np.float64), Xtr.max(0).astype(np.float64)
+        clf = xgb.XGBClassifier(**par)
+        clf.fit(norm(Xtr, dmin, dmax), ytr)
+        del Xtr, ytr
+        clf.save_model(os.path.join(BASE, "results", "model_16_%s.json" % d))
+        np.save(os.path.join(BASE, "results", "minmax_%s.npy" % d), np.vstack([dmin, dmax]))
+        for t in ["kim"] + gerados:
+            pr, yi, ym_ = [], [], []
+            for n in ORDEM:
+                A, ym, yip = carrega(t, n, d)
+                c = int(len(A) * 0.7)
+                pr.append(clf.predict(norm(A[c:], dmin, dmax)))
+                ym_.append(ym[c:])
+                yi.append(yip[c:])
+            chave = "%s_%s" % (PFX[d], PFX[t])
+            if t == "kim":
+                res[chave] = {"rotulo_ip": mede(pr, yi, ORDEM), "rotulo_mac": mede(pr, ym_, ORDEM)}
+                r = res[chave]["rotulo_ip"]
+            else:
+                res[chave] = r = mede(pr, ym_, ORDEM)
+            print("%s->%s: macro-F1 %.4f FP %.4f" % (d, t, r["macro_f1"], r["fp_total"]), flush=True)
     json.dump(res, open(os.path.join(BASE, "matriz_c1.json"), "w"), indent=1)
 
     # ---------- tabelas ----------
-    S = [("β→β", res["beta_beta"]["rotulo_ip"]), ("β→γ", res["beta_gama"]), ("γ→γ", res["gama_gama"]),
-         ("γ→β", res["gama_beta"]["rotulo_ip"])]
+    doms = res["notas"]["dominios"]
+
+    def cel(d, t):
+        v = res["%s_%s" % (PFX[d], PFX[t])]
+        return v["rotulo_ip"] if t == "kim" else v
+    S = [("%s→%s" % (SIGLA[d], SIGLA[t]), cel(d, t)) for d in doms for t in doms]
     L = ["**Tabela XIII (FP em janela benigna, % dos quadros rotulados normais na janela de teste de cada captura)**", "",
          "| captura | " + " | ".join(s for s, _ in S) + " |", "|---|" + "---:|" * len(S)]
     for n in ORDEM:
@@ -186,9 +215,9 @@ def main():
           "|---|" + "---:|" * len(S)]
     for c in CL[1:]:
         L.append("| %s | %s |" % (c, " | ".join("%.4f" % r["recall"][c] for _, r in S)))
-    S2 = [("β→β (MAC)", res["beta_beta"]["rotulo_mac"]), ("γ→β (MAC)", res["gama_beta"]["rotulo_mac"])]
+    S2 = [("%s→β (MAC)" % SIGLA[d], res["%s_beta" % PFX[d]]["rotulo_mac"]) for d in doms]
     L += ["", "**Variante: β rotulado por MAC (mesmos modelos)**", "", "| | " + " | ".join(s for s, _ in S2) + " |",
-          "|---|---:|---:|"]
+          "|---|" + "---:|" * len(S2)]
     for n in ORDEM:
         L.append("| FP %s | %s |" % (n, " | ".join("%.3f%%" % (100 * r["fp_por_captura"][n]["fp"]) for _, r in S2)))
     for c in CL:
